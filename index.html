@@ -7,10 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!--  1. เพิ่ม Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* CSS ทั้งหมดเหมือนเดิม ไม่มีการเปลี่ยนแปลง... */
         :root {
             --bg-color: #121212;
             --surface-color: #1e1e1e;
@@ -54,8 +52,8 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--secondary-color); } input:checked + .slider:before { transform: translateX(22px); }
         .match-card { display: flex; flex-direction: column; gap: 12px; }
-        .match-header { display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-        .match-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .match-header { display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; gap: 10px;}
+        .match-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
         .vs { font-size: 20px; color: var(--text-muted); font-weight: 700; }
         .score-control { display: flex; align-items: center; gap: 10px; }
         .score-input { width: 60px; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
@@ -71,12 +69,28 @@
         .delete-day-btn { padding: 0 15px; background-color: var(--team-red); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 20px; }
         #no-data-message { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         #no-data-message .icon { font-size: 48px; margin-bottom: 16px; }
+
+        /* --- CSS for Edit Match Modal --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s; }
+        .modal-content { background-color: var(--surface-color); margin: 15% auto; padding: 20px; border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 500px; position: relative; box-shadow: 0 10px 30px var(--shadow-color); }
+        .close-modal-btn { color: var(--text-muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-modal-btn:hover, .close-modal-btn:focus { color: var(--text-color); }
+        #modal-match-info { margin-bottom: 15px; color: var(--text-muted); text-align: center; }
+
+        /* --- CSS Improvement for Score Page on Mobile --- */
+        #page-scores .match-body { grid-template-columns: 1fr; gap: 12px; }
+        #page-scores .score-control { justify-content: center; }
+        #page-scores .vs { font-size: 24px; margin: 8px 0; }
+        @media (min-width: 600px) { #page-scores .match-body { grid-template-columns: 1fr auto auto auto 1fr; gap: 10px; } }
+
+        /* --- CSS for Edit Match Button --- */
+        .edit-match-btn { background-color: var(--primary-variant); color: var(--text-color); border: none; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: auto; }
+        .edit-match-btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
-
     <div id="app">
-        <!-- HTML ทั้งหมดเหมือนเดิม ไม่มีการเปลี่ยนแปลง -->
+        <!-- HTML Content -->
         <main id="content">
             <div id="page-setup" class="page">
                 <h1>⚽ ตั้งค่าการแข่งขัน</h1>
@@ -122,6 +136,25 @@
         </nav>
     </div>
 
+    <!-- Modal for Editing Match -->
+    <div id="edit-match-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn">×</span>
+            <h2>✏️ แก้ไขคู่แข่งขัน</h2>
+            <p id="modal-match-info"></p>
+            <div class="form-group">
+                <label for="modal-home-team">ทีมเหย้า</label>
+                <select id="modal-home-team"></select>
+            </div>
+            <div class="form-group">
+                <label for="modal-away-team">ทีมเยือน</label>
+                <select id="modal-away-team"></select>
+            </div>
+            <button id="save-match-changes-btn" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
+        </div>
+    </div>
+
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -129,6 +162,10 @@
         // ใส่ URL และ ANON KEY ที่ได้จาก Project Settings ของคุณ
         const SUPABASE_URL = 'https://tudwtpbojqvnoueyrvxr.supabase.co'; // <-- แก้ไขตรงนี้
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY'; // <-- แก้ไขตรงนี้
+
+        if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+            alert('กรุณาตั้งค่า SUPABASE_URL และ SUPABASE_ANON_KEY ในไฟล์ index.html ก่อนใช้งาน');
+        }
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -138,12 +175,10 @@
             { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' },
         ];
         
-        // State Management - ใช้ object เพื่อเก็บข้อมูลที่โหลดมาแสดงผลชั่วคราว
         let appData = {};
         let activePage = 'page-setup';
         let currentDateKey = new Date().toISOString().split('T')[0];
 
-        // DOM Elements
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
         const content = document.getElementById('content');
@@ -152,16 +187,20 @@
         async function init() {
             setupNavigation();
             setupPageSetup();
-            
-            // โหลดข้อมูลทั้งหมดที่มีอยู่เพื่อสร้าง Date Selectors
-            await updateDateSelectors(); 
 
-            // โหลดข้อมูลของวันล่าสุด (ถ้ามี) หรือวันที่ปัจจุบัน
+            document.querySelector('.close-modal-btn').addEventListener('click', closeEditMatchModal);
+            document.getElementById('save-match-changes-btn').addEventListener('click', saveMatchChanges);
+            window.addEventListener('click', (event) => {
+                if (event.target == document.getElementById('edit-match-modal')) {
+                    closeEditMatchModal();
+                }
+            });
+            
+            await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || currentDateKey;
             await loadDataForDate(initialDate);
-
             setActivePage('page-setup');
-            listenToRealtimeChanges(); // เริ่มฟังการเปลี่ยนแปลงแบบ Real-time
+            listenToRealtimeChanges();
         }
 
         // --- 📡 4. REAL-TIME SUBSCRIPTION ---
@@ -169,15 +208,10 @@
             db.channel('match_days_changes')
               .on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => {
                   console.log('Realtime Change received!', payload);
-                  
-                  // ไม่ว่าจะเป็น INSERT, UPDATE, DELETE ให้โหลด Date Selectors ใหม่ทั้งหมด
-                  await updateDateSelectors();
-                  
-                  // โฟกัสที่วันที่ปัจจุบันที่เลือกอยู่
                   const selectedDate = document.getElementById('schedule-date-selector').value;
-
-                  // โหลดข้อมูลสำหรับวันที่เลือกอยู่ใหม่ เพื่ออัปเดตหน้าจอ
+                  await updateDateSelectors();
                   if (selectedDate) {
+                      document.getElementById('schedule-date-selector').value = selectedDate; // try to keep selection
                       await loadDataForDate(selectedDate);
                   }
               })
@@ -186,9 +220,7 @@
 
         // --- 🧭 5. การนำทาง (Navigation) ---
         function setupNavigation() {
-            navButtons.forEach(button => {
-                button.addEventListener('click', () => setActivePage(button.dataset.page));
-            });
+            navButtons.forEach(button => button.addEventListener('click', () => setActivePage(button.dataset.page)));
         }
         function setActivePage(pageId) {
             activePage = pageId;
@@ -206,10 +238,10 @@
             const { data, error } = await db.from('match_days').select('*').eq('match_date', date).single();
             
             if (data) {
-                appData[date] = data; // Cache data locally
+                appData[date] = data;
                 loadSettingsFromData(data.settings);
             } else {
-                appData[date] = null; // No data for this date
+                appData[date] = null;
                 resetSettingsForm();
             }
             renderAllPagesForDate(date);
@@ -238,7 +270,6 @@
 
         // --- 🛠️ 7. หน้าตั้งค่า (Setup Page) ---
         function setupPageSetup() {
-            // ... โค้ดส่วนนี้เหมือนเดิมเกือบทั้งหมด ...
             const container = document.getElementById('team-toggle-container');
             const openerHomeSelect = document.getElementById('opener-home');
             const openerAwaySelect = document.getElementById('opener-away');
@@ -260,8 +291,6 @@
         async function generateAndSaveSchedule() {
             const date = document.getElementById('match-date').value;
             if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            
-            // 1. Collect settings from form (เหมือนเดิม)
             const settings = {
                 totalHours: parseFloat(document.getElementById('total-hours').value),
                 timePerMatch: parseInt(document.getElementById('time-per-match').value),
@@ -271,11 +300,8 @@
             };
             if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-
-            // 2. Generate schedule (เหมือนเดิม)
             const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
             let schedule = [];
-            // ... (อัลกอริทึมจัดตารางเหมือนเดิมเป๊ะ) ...
             let teamStats = {};
             settings.activeTeams.forEach(slug => { teamStats[slug] = { played: 0, lastPlayed: -2, consecutiveRest: 0 }; });
             let pool = [...settings.activeTeams];
@@ -301,35 +327,19 @@
                 schedule.push({ home: homeTeam, away: awayTeam, homeScore: null, awayScore: null });
                 settings.activeTeams.forEach(slug => { if (slug === homeTeam || slug === awayTeam) { teamStats[slug].played++; teamStats[slug].lastPlayed = i; teamStats[slug].consecutiveRest = 0; } else { teamStats[slug].consecutiveRest++; } });
             }
-            // 3. Save to Supabase
-            const { error } = await db.from('match_days').upsert({
-                match_date: date,
-                settings: settings,
-                schedule: schedule
-            }, { onConflict: 'match_date' });
-
-            if (error) {
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
-            } else {
-                alert('สร้าง/อัปเดตตารางแข่งขันเรียบร้อยแล้ว!');
-                await loadDataForDate(date); // โหลดข้อมูลใหม่หลังบันทึก
-                setActivePage('page-schedule');
-            }
+            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
+            if (error) { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); } else { alert('สร้าง/อัปเดตตารางแข่งขันเรียบร้อยแล้ว!'); await loadDataForDate(date); setActivePage('page-schedule'); }
         }
         
         async function deleteDay() {
             const dateToDelete = document.getElementById('schedule-date-selector').value;
             if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) {
                 const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete);
-                if (error) alert('เกิดข้อผิดพลาด: ' + error.message);
-                else alert('ลบข้อมูลเรียบร้อยแล้ว');
-                // Real-time listener จะจัดการอัปเดต UI ให้เอง
+                if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else alert('ลบข้อมูลเรียบร้อยแล้ว');
             }
         }
 
-
         // --- 🔄 9. การแสดงผลหน้าต่างๆ (Page Rendering) ---
-        // ฟังก์ชัน render ทั้งหมดจะใช้ข้อมูลจาก appData[date] ที่ cache ไว้
         function renderAllPagesForDate(date) {
             renderSchedulePage(date);
             renderScoresPage(date);
@@ -339,61 +349,60 @@
         async function updateDateSelectors() {
             const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false });
             if (error) return;
-
             const dates = datesData.map(d => d.match_date);
             const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')];
-            
             selectors.forEach(selector => {
                 const currentVal = selector.value;
                 selector.innerHTML = '';
-                if (dates.length === 0) {
-                    selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>';
-                } else {
-                    dates.forEach(date => {
-                        const option = document.createElement('option');
-                        option.value = date;
-                        option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-                        selector.appendChild(option);
-                    });
-                }
-                if (dates.includes(currentVal)) {
-                    selector.value = currentVal;
-                } else if (dates.includes(currentDateKey)) {
-                    selector.value = currentDateKey;
-                }
+                if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); }
+                if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; }
             });
-
-            selectors.forEach(selector => {
-                selector.onchange = (e) => {
-                    const newDate = e.target.value;
-                    selectors.forEach(s => s.value = newDate);
-                    loadDataForDate(newDate);
-                };
-            });
+            selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; });
             document.getElementById('delete-day-btn').onclick = deleteDay;
         }
 
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         
-        // ... โค้ดส่วน renderSchedulePage, renderScoresPage, renderLeaderboardPage, calculateLeaderboard เหมือนเดิมเป๊ะ ...
-        // แต่จะใช้ข้อมูลจาก appData ที่ถูก cache ไว้
         function renderSchedulePage(date) {
             const container = document.getElementById('schedule-container');
             const dayData = appData[date];
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
             const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
-            container.innerHTML = schedule.map((match, index) => { const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); const homeTeam = TEAMS.find(t => t.slug === match.home); const awayTeam = TEAMS.find(t => t.slug === match.away); return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div><span class="vs">VS</span><div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div></div></div>`; }).join('');
+            container.innerHTML = schedule.map((match, index) => {
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const homeTeam = TEAMS.find(t => t.slug === match.home);
+                const awayTeam = TEAMS.find(t => t.slug === match.away);
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A';
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A';
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span><button class="edit-match-btn" data-index="${index}">✏️ แก้ไข</button></div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><span class="vs">VS</span><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div></div>`;
+            }).join('');
+            container.querySelectorAll('.edit-match-btn').forEach(btn => btn.addEventListener('click', (e) => openEditMatchModal(e.currentTarget.dataset.index)));
         }
+
         function renderScoresPage(date) {
             const container = document.getElementById('scores-container');
             const dayData = appData[date];
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('สร้างตารางแข่งขันก่อนจึงจะบันทึกผลได้', '✏️'); return; }
             const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
-            container.innerHTML = schedule.map((match, index) => { const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); const homeTeam = TEAMS.find(t => t.slug === match.home); const awayTeam = TEAMS.find(t => t.slug === match.away); return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1">-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home"><button class="score-btn" data-index="${index}" data-team="home" data-op="1">+</button></div><span class="vs">-</span><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1">-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away"><button class="score-btn" data-index="${index}" data-team="away" data-op="1">+</button></div><div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div></div><div style="text-align:center; margin-top: 10px;"><button class="reset-score-btn" data-index="${index}">🔁 รีเซ็ต</button></div></div>`; }).join('');
+            container.innerHTML = schedule.map((match, index) => {
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const homeTeam = TEAMS.find(t => t.slug === match.home);
+                const awayTeam = TEAMS.find(t => t.slug === match.away);
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A';
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A';
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1">-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home"><button class="score-btn" data-index="${index}" data-team="home" data-op="1">+</button></div><span class="vs">-</span><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1">-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away"><button class="score-btn" data-index="${index}" data-team="away" data-op="1">+</button></div><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div><div style="text-align:center; margin-top: 10px;"><button class="reset-score-btn" data-index="${index}">🔁 รีเซ็ต</button></div></div>`;
+            }).join('');
             container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
             container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
             container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore));
         }
+
         function renderLeaderboardPage(date) {
             const container = document.getElementById('leaderboard-container');
             const dayData = appData[date];
@@ -404,19 +413,56 @@
             container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`;
         }
 
-        // --- 📊 10. ฟังก์ชันคำนวณและอัปเดตคะแนน ---
+        // --- 10. MODAL FUNCTIONS ---
+        let currentEditingMatchIndex = null;
+        function openEditMatchModal(index) {
+            currentEditingMatchIndex = parseInt(index);
+            const date = currentDateKey;
+            const dayData = appData[date];
+            if (!dayData) return;
+            const match = dayData.schedule[currentEditingMatchIndex];
+            const activeTeams = dayData.settings.activeTeams;
+            const homeSelect = document.getElementById('modal-home-team');
+            const awaySelect = document.getElementById('modal-away-team');
+            homeSelect.innerHTML = '';
+            awaySelect.innerHTML = '';
+            activeTeams.forEach(teamSlug => {
+                const team = TEAMS.find(t => t.slug === teamSlug);
+                if (team) { const option = `<option value="${team.slug}">${team.name}</option>`; homeSelect.innerHTML += option; awaySelect.innerHTML += option; }
+            });
+            homeSelect.value = match.home;
+            awaySelect.value = match.away;
+            document.getElementById('modal-match-info').textContent = `กำลังแก้ไขแมตช์ที่ ${currentEditingMatchIndex + 1}`;
+            document.getElementById('edit-match-modal').style.display = 'block';
+        }
+        function closeEditMatchModal() {
+            document.getElementById('edit-match-modal').style.display = 'none';
+            currentEditingMatchIndex = null;
+        }
+        async function saveMatchChanges() {
+            if (currentEditingMatchIndex === null) return;
+            const date = currentDateKey;
+            const dayData = appData[date];
+            const newHomeSlug = document.getElementById('modal-home-team').value;
+            const newAwaySlug = document.getElementById('modal-away-team').value;
+            if (newHomeSlug === newAwaySlug) { alert('ทีมเหย้าและทีมเยือนต้องไม่ซ้ำกัน!'); return; }
+            const newSchedule = [...dayData.schedule];
+            newSchedule[currentEditingMatchIndex].home = newHomeSlug;
+            newSchedule[currentEditingMatchIndex].away = newAwaySlug;
+            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
+            if (error) { alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message); } else { alert('บันทึกการเปลี่ยนแปลงเรียบร้อย!'); closeEditMatchModal(); }
+        }
+
+        // --- 📊 11. ฟังก์ชันคำนวณและอัปเดตคะแนน ---
         async function updateScore(index, team, value) {
             const date = currentDateKey;
             let dayData = appData[date];
             if (!dayData) return;
-
             const newSchedule = [...dayData.schedule];
             const match = newSchedule[index];
             if (team === 'home') match.homeScore = value; else match.awayScore = value;
-
             const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
             if (error) alert('เกิดข้อผิดพลาดในการอัปเดตคะแนน: ' + error.message);
-            // ไม่ต้องทำอะไรต่อ Real-time listener จะจัดการเอง
         }
         function updateScoreFromButton(event) {
             const { index, team, op } = event.currentTarget.dataset;
@@ -439,11 +485,12 @@
         }
         function calculateLeaderboard(date) {
             const dayData = appData[date];
+            if (!dayData) return {};
             const stats = {};
             dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; });
             dayData.schedule.forEach(match => {
                 const { home, away, homeScore, awayScore } = match;
-                if (homeScore === null || awayScore === null) return;
+                if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return;
                 stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore;
                 if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; }
             });
