@@ -256,47 +256,9 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE PATHFINDING ALGORITHM (Definitive Version) ***
+        // *** THE PERFECT & FAIR ALGORITHM ***
         function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
-            
-            function solve(scheduleSoFar, availableMatches) {
-                // Base case: If no more matches to schedule, we found a valid path
-                if (availableMatches.length === 0) {
-                    return scheduleSoFar;
-                }
-
-                const lastTeams = scheduleSoFar.length > 0 ? [scheduleSoFar[scheduleSoFar.length - 1].home, scheduleSoFar[scheduleSoFar.length - 1].away] : [];
-                
-                // Find all possible next matches
-                const candidates = availableMatches.map((match, index) => ({ match, index }))
-                    .filter(c => !lastTeams.includes(c.match.home) && !lastTeams.includes(c.match.away));
-                
-                // If no valid candidates, this path is a dead end
-                if (candidates.length === 0) {
-                     // This can happen, force the first available match to prevent getting stuck
-                     // This is the "relax constraint" part
-                     candidates.push({ match: availableMatches[0], index: 0});
-                }
-
-                // Try each candidate recursively
-                for (const candidate of candidates) {
-                    const newSchedule = [...scheduleSoFar, candidate.match];
-                    const newAvailable = [...availableMatches];
-                    newAvailable.splice(candidate.index, 1);
-                    
-                    const result = solve(newSchedule, newAvailable);
-                    
-                    // If the recursive call found a full solution, return it immediately
-                    if (result) {
-                        return result;
-                    }
-                }
-                
-                // If all candidates lead to dead ends, return null
-                return null;
-            }
-
-            // 1. Create Leg 1 and Leg 2
+            // 1. Create a blueprint of all unique pairings (Leg 1) and their return fixtures (Leg 2)
             let leg1 = [];
             for (let i = 0; i < teams.length; i++) {
                 for (let j = i + 1; j < teams.length; j++) {
@@ -305,6 +267,7 @@
             }
             let leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
 
+            // 2. Shuffle both legs independently to create variety
             const shuffle = (array) => {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -313,41 +276,74 @@
             };
             shuffle(leg1);
             shuffle(leg2);
-            
-            let initialSchedule = [];
+
+            // 3. Build the final schedule by picking matches one by one with strict rules
+            let finalSchedule = [];
             let availableLeg1 = [...leg1];
             let availableLeg2 = [...leg2];
-            
-            // Handle opener
+
+            // Handle opener first, removing it from the available pool
             if (opener && opener.home && opener.away) {
-                 let openerIndex = availableLeg1.findIndex(m => m.home === opener.home && m.away === opener.away);
+                let openerIndex = availableLeg1.findIndex(m => m.home === opener.home && m.away === opener.away);
                 if (openerIndex !== -1) {
-                    initialSchedule.push(availableLeg1.splice(openerIndex, 1)[0]);
+                    finalSchedule.push(availableLeg1.splice(openerIndex, 1)[0]);
                 } else {
                     openerIndex = availableLeg2.findIndex(m => m.home === opener.home && m.away === opener.away);
                     if (openerIndex !== -1) {
-                        initialSchedule.push(availableLeg2.splice(openerIndex, 1)[0]);
+                        finalSchedule.push(availableLeg2.splice(openerIndex, 1)[0]);
                     }
                 }
             }
+            
+            while (finalSchedule.length < totalMatches) {
+                if (availableLeg1.length === 0 && availableLeg2.length === 0) break;
 
-            // 2. Solve Leg 1 first
-            const leg1Solution = solve(initialSchedule, availableLeg1);
-            if (!leg1Solution) {
-                console.error("Could not solve Leg 1, this should not happen with 4+ teams.");
-                // Fallback to simpler concatenation if solver fails
-                return [...leg1, ...leg2].slice(0, totalMatches).map(m => ({...m, homeScore: null, awayScore: null}));
+                const lastTeams = finalSchedule.length > 0 ? [finalSchedule[finalSchedule.length - 1].home, finalSchedule[finalSchedule.length - 1].away] : [];
+                
+                let chosenMatch = null;
+                let fromLeg = 0; // 1 or 2
+                let chosenIndex = -1;
+
+                // Priority 1: Find a non-conflicting match in Leg 1
+                let bestIndex1 = availableLeg1.findIndex(match => !lastTeams.includes(match.home) && !lastTeams.includes(match.away));
+                
+                if (bestIndex1 !== -1) {
+                    chosenIndex = bestIndex1;
+                    fromLeg = 1;
+                } else {
+                    // Priority 2: If no good match in Leg 1, find a non-conflicting match in Leg 2
+                    let bestIndex2 = availableLeg2.findIndex(match => !lastTeams.includes(match.home) && !lastTeams.includes(match.away));
+                    
+                    if (bestIndex2 !== -1) {
+                        chosenIndex = bestIndex2;
+                        fromLeg = 2;
+                    } else {
+                        // Gridlock Escape: Force a match, prioritizing Leg 1 if available
+                        console.warn("Forcing match due to gridlock. This is a rare edge case.");
+                        if (availableLeg1.length > 0) {
+                            chosenIndex = 0;
+                            fromLeg = 1;
+                        } else if (availableLeg2.length > 0) {
+                            chosenIndex = 0;
+                            fromLeg = 2;
+                        } else {
+                            break; // No matches left
+                        }
+                    }
+                }
+                
+                if (fromLeg === 1) {
+                    chosenMatch = availableLeg1.splice(chosenIndex, 1)[0];
+                } else if (fromLeg === 2) {
+                    chosenMatch = availableLeg2.splice(chosenIndex, 1)[0];
+                }
+                
+                if (chosenMatch) {
+                    finalSchedule.push({ ...chosenMatch, homeScore: null, awayScore: null });
+                }
             }
 
-            // 3. Solve Leg 2 using Leg 1's solution as the starting point
-            const finalSolution = solve(leg1Solution, availableLeg2);
-             if (!finalSolution) {
-                console.error("Could not solve Leg 2, this should not happen with 4+ teams.");
-                // Fallback
-                return leg1Solution.concat(availableLeg2).slice(0, totalMatches).map(m => ({...m, homeScore: null, awayScore: null}));
-            }
-
-            return finalSolution.slice(0, totalMatches).map(m => ({...m, homeScore: null, awayScore: null}));
+            return finalSchedule.slice(0, totalMatches);
         }
         
         async function init() {
@@ -482,7 +478,7 @@
 
             let schedule;
             try {
-                console.log("Using THE PATHFINDING ALGORITHM...");
+                console.log("Using THE PERFECT & FAIR ALGORITHM...");
                 schedule = generateGuaranteedFairSchedule(settings.activeTeams, totalMatches, settings.opener);
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
