@@ -239,16 +239,18 @@
 
         // *** THE DEFINITIVE MASTER TEMPLATE ALGORITHM (with updated templates) ***
         const MASTER_TEMPLATES = {
+            // Mapping: 1=1st team, 2=2nd team, 3=3rd team, 4=4th team, 5=5th team
             '5-teams': [
-                {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},
-                {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},
-                {home:4, away:3}, {home:2, away:1}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2},
-                {home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4}
+                {home:1,away:2}, {home:3,away:4}, {home:5,away:1}, {home:2,away:3}, {home:4,away:5},
+                {home:1,away:3}, {home:2,away:4}, {home:3,away:5}, {home:1,away:4}, {home:2,away:5},
+                {home:4,away:3}, {home:2,away:1}, {home:3,away:5}, {home:4,away:1}, {home:5,away:2},
+                {home:3,away:1}, {home:4,away:2}, {home:1,away:5}, {home:3,away:2}, {home:5,away:4}
             ],
+            // Mapping: 1=1st team, 2=2nd team, 3=3rd team, 4=4th team
             '4-teams': [
-                {home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3}, {home:3, away:1},
-                {home:4, away:2}, {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4},
-                {home:2, away:1}, {home:4, away:3}
+                {home:1,away:2}, {home:3,away:4}, {home:4,away:1}, {home:2,away:3}, {home:3,away:1},
+                {home:4,away:2}, {home:1,away:3}, {home:2,away:4}, {home:3,away:2}, {home:1,away:4},
+                {home:2,away:1}, {home:4,away:3}
             ]
         };
 
@@ -306,13 +308,12 @@
                 .filter(match => match.home && match.away);
 
             
-            // 4. Handle opener: ROTATE the schedule to preserve the sequence
+            // 4. Handle opener: move it to the front
             if (opener && opener.home && opener.away) {
                 const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
                 if (openerIndex > 0) { 
-                    const part1 = translatedSchedule.slice(openerIndex);
-                    const part2 = translatedSchedule.slice(0, openerIndex);
-                    translatedSchedule = [...part1, ...part2];
+                    const [openerMatch] = translatedSchedule.splice(openerIndex, 1);
+                    translatedSchedule.unshift(openerMatch);
                 }
             }
 
