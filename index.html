@@ -237,20 +237,20 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE DEFINITIVE MASTER TEMPLATE ALGORITHM ***
+        // *** THE DEFINITIVE MASTER TEMPLATE ALGORITHM (with updated templates) ***
         const MASTER_TEMPLATES = {
-            // Mapping: 1=green, 2=red, 3=navy, 4=blue, 5=black
+            // Mapping: 1=1st team, 2=2nd team, 3=3rd team, 4=4th team, 5=5th team
             '5-teams': [
                 {home:1,away:2}, {home:3,away:4}, {home:5,away:1}, {home:2,away:3}, {home:4,away:5},
-                {home:1,away:3}, {home:2,away:5}, {home:3,away:5}, {home:1,away:4}, {home:2,away:5},
-                {home:3,away:4}, {home:1,away:2}, {home:5,away:3}, {home:4,away:1}, {home:2,away:5},
-                {home:3,away:1}, {home:4,away:2}, {home:1,away:5}, {home:3,away:2}, {home:4,away:5}
+                {home:1,away:3}, {home:2,away:4}, {home:3,away:5}, {home:1,away:4}, {home:2,away:5},
+                {home:4,away:3}, {home:2,away:1}, {home:3,away:5}, {home:4,away:1}, {home:5,away:2},
+                {home:3,away:1}, {home:4,away:2}, {home:1,away:5}, {home:3,away:2}, {home:5,away:4}
             ],
-            // Mapping: 1=green, 2=red, 3=navy
+            // Mapping: 1=1st team, 2=2nd team, 3=3rd team, 4=4th team
             '4-teams': [
-                {home:1,away:2}, {home:3,away:1}, {home:2,away:3}, {home:2,away:1}, {home:3,away:1},
-                {home:3,away:2}, {home:2,away:3}, {home:3,away:1}, {home:2,away:3}, {home:1,away:2},
-                {home:1,away:3}, {home:3,away:1}
+                {home:1,away:2}, {home:3,away:4}, {home:4,away:1}, {home:2,away:3}, {home:3,away:1},
+                {home:4,away:2}, {home:1,away:3}, {home:2,away:4}, {home:3,away:2}, {home:1,away:4},
+                {home:2,away:1}, {home:4,away:3}
             ]
         };
 
@@ -265,7 +265,6 @@
                 numberTemplate = [...MASTER_TEMPLATES['4-teams']];
             } else {
                 // Fallback for other numbers of teams (e.g., 3 or 6)
-                // This uses the standard Circle Method
                 console.log(`No master template for ${teamCount} teams. Using Circle Method fallback.`);
                 let teamList = [...teams];
                 const BYE = "BYE_TEAM";
@@ -306,7 +305,6 @@
                     home: numberToTeamMap.get(match.home),
                     away: numberToTeamMap.get(match.away)
                 }))
-                // Filter out any matches that might be invalid due to the mapping (e.g. team 5 vs 4 when only 4 teams are selected)
                 .filter(match => match.home && match.away);
 
             
@@ -399,9 +397,7 @@
         function setupPageSetup() {
             const contentWrapper = document.getElementById('setup-content-wrapper');
             const loginPrompt = document.getElementById('setup-login-prompt');
-            const openerHomeSelect = document.getElementById('opener-home');
-            const openerAwaySelect = document.getElementById('opener-away');
-
+            
             if (!currentUser) {
                 contentWrapper.style.display = 'none';
                 loginPrompt.style.display = 'block';
