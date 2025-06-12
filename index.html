@@ -88,7 +88,6 @@
         .score-btn { width: 40px; height: 40px; border-radius: 8px; border: none; font-size: 24px; font-weight: 700; cursor: pointer; background-color: #333; color: var(--text-color); transition: background-color 0.2s; }
         .score-btn:hover:not(:disabled) { background-color: #444; }
         .score-input { width: 60px; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
-        /* NEW: Styles for disabled/readonly score controls */
         .score-input:read-only { background-color: #2a2a2a; cursor: default; }
         .score-btn:disabled, .reset-score-btn:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; }
         .reset-score-btn { width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; background-color: var(--team-orange); color: white; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
@@ -109,42 +108,44 @@
         </div>
 
         <main id="content">
+            <!-- *** FIX: Modified HTML Structure *** -->
             <div id="page-setup" class="page">
-                <!-- Content for setup page remains the same -->
-                 <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
-                <div class="card">
-                    <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
-                    <div class="form-group">
-                        <label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label>
-                        <div class="custom-number-input">
-                            <button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button>
-                            <input type="number" id="total-hours" value="2" step="0.5" min="0.5">
-                            <button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button>
+                <div id="setup-content-wrapper">
+                    <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
+                    <div class="card">
+                        <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
+                        <div class="form-group">
+                            <label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label>
+                            <div class="custom-number-input">
+                                <button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button>
+                                <input type="number" id="total-hours" value="2" step="0.5" min="0.5">
+                                <button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
-                        <div class="custom-number-input">
-                             <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
-                            <input type="number" id="time-per-match" value="10" step="1" min="1">
-                            <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
+                        <div class="form-group">
+                            <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
+                            <div class="custom-number-input">
+                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
+                                <input type="number" id="time-per-match" value="10" step="1" min="1">
+                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
+                            </div>
                         </div>
+                        <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
-                    <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
+                    <div class="card">
+                        <h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div>
+                    </div>
+                    <div class="card">
+                        <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
+                        <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
+                        <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
+                    </div>
+                    <button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button>
                 </div>
-                <div class="card">
-                    <h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div>
-                </div>
-                <div class="card">
-                    <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
-                     <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
-                     <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
-                </div>
-                <button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button>
+                <div id="setup-login-prompt"></div>
             </div>
             
             <div id="page-schedule" class="page">
-                 <!-- Content for schedule page remains the same -->
                 <div class="page-header">
                     <h1>📅 ตารางการแข่งขัน</h1>
                     <button id="export-schedule-btn" class="export-btn">📸 Export</button>
@@ -156,7 +157,6 @@
             </div>
 
             <div id="page-scores" class="page">
-                 <!-- Content for scores page remains the same -->
                 <div class="page-header">
                     <h1>📝 ผลการแข่งขัน</h1>
                     <button id="export-scores-btn" class="export-btn">📸 Export</button>
@@ -166,7 +166,6 @@
             </div>
 
             <div id="page-leaderboard" class="page">
-                 <!-- Content for leaderboard page remains the same -->
                  <div class="page-header">
                     <h1>📊 ตารางคะแนน</h1>
                     <button id="export-leaderboard-btn" class="export-btn">📸 Export</button>
@@ -236,6 +235,7 @@
         let currentDateKey = new Date().toISOString().split('T')[0];
         let currentEditingMatchIndex = null;
         let currentUser = null;
+        let isInitialSetupDone = false; // To prevent re-attaching listeners
 
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
@@ -275,16 +275,14 @@
         
         async function loadInitialData() {
             setupNavigation();
-            setupPageSetup();
             
-            document.querySelector('.close-modal-btn').addEventListener('click', closeEditMatchModal);
+            document.querySelector('#edit-match-modal .close-modal-btn').addEventListener('click', closeEditMatchModal);
             document.getElementById('save-match-changes-btn').addEventListener('click', saveMatchChanges);
             window.addEventListener('click', (event) => {
                 if (event.target == document.getElementById('edit-match-modal')) {
                     closeEditMatchModal();
                 }
             });
-            document.querySelectorAll('.num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
 
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
@@ -302,17 +300,13 @@
             logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
             userInfo.style.display = isLoggedIn ? 'inline-block' : 'none';
 
-            // CHANGED: Only hide the setup page nav button
             document.querySelector('.nav-btn[data-page="page-setup"]').style.display = isLoggedIn ? 'flex' : 'none';
-            
             document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
 
-            // CHANGED: If logged out, only redirect from setup page
             if (!isLoggedIn && activePage === 'page-setup') {
                 setActivePage('page-schedule');
             }
             
-            // Re-render the current page to apply new permissions (e.g. enable/disable buttons)
             renderAllPagesForDate(currentDateKey);
         }
         
@@ -330,7 +324,6 @@
         }
 
         function setActivePage(pageId) {
-            // CHANGED: Only prevent access to the setup page
             if (!currentUser && pageId === 'page-setup') {
                 alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้');
                 loginModal.style.display = 'block';
@@ -343,106 +336,60 @@
             content.scrollTop = 0;
             renderAllPagesForDate(currentDateKey);
         }
-        
-        function renderSchedulePage(date) {
-            const container = document.getElementById('schedule-container');
-            const dayData = appData[date];
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
-            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
-            container.innerHTML = schedule.map((match, index) => { 
-                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); 
-                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
-                const homeTeam = TEAMS.find(t => t.slug === match.home); 
-                const awayTeam = TEAMS.find(t => t.slug === match.away); 
-                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
-                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black'; 
-                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
-                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
-                const editButtonHtml = currentUser ? `<button class="edit-match-btn" data-index="${index}">✏️ แก้ไข</button>` : '';
-                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${editButtonHtml}</div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><span class="vs">VS</span><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div></div>`; 
-            }).join('');
-            if(currentUser) container.querySelectorAll('.edit-match-btn').forEach(btn => { btn.addEventListener('click', (e) => { const matchIndex = e.currentTarget.dataset.index; openEditMatchModal(matchIndex); }); });
-        }
 
-        // --- MAJOR CHANGE IN THIS FUNCTION ---
-        function renderScoresPage(date) {
-            const container = document.getElementById('scores-container');
-            document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน';
+        // *** FIX: Improved setupPageSetup function ***
+        function setupPageSetup() {
+            const contentWrapper = document.getElementById('setup-content-wrapper');
+            const loginPrompt = document.getElementById('setup-login-prompt');
 
-            const dayData = appData[date];
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { 
-                container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); 
-                return; 
+            if (!currentUser) {
+                contentWrapper.style.display = 'none';
+                loginPrompt.style.display = 'block';
+                loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐');
+                return;
             }
 
-            const { schedule, settings } = dayData; 
-            const startTime = new Date(`${date}T${settings.startTime}`);
-            const isReadOnly = !currentUser; // Determine if controls should be read-only
+            // Show content for admin
+            contentWrapper.style.display = 'block';
+            loginPrompt.style.display = 'none';
 
-            container.innerHTML = schedule.map((match, index) => {
-                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
-                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
-                const homeTeam = TEAMS.find(t => t.slug === match.home); 
-                const awayTeam = TEAMS.find(t => t.slug === match.away);
-                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
-                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
-                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
-                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+            // Run setup only once to avoid duplicate event listeners
+            if (isInitialSetupDone) return;
 
-                // NEW: Add readonly/disabled attributes based on login status
-                const readonlyAttr = isReadOnly ? 'readonly' : '';
-                const disabledAttr = isReadOnly ? 'disabled' : '';
+            const container = document.getElementById('team-toggle-container');
+            const openerHomeSelect = document.getElementById('opener-home');
+            const openerAwaySelect = document.getElementById('opener-away');
+            container.innerHTML = '';
+            openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
+            openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
+            TEAMS.forEach(team => {
+                const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`;
+                container.innerHTML += toggleHtml;
+                const option = `<option value="${team.slug}">${team.name}</option>`;
+                openerHomeSelect.innerHTML += option;
+                openerAwaySelect.innerHTML += option;
+            });
 
-                return `<div class="card match-card">
-                    <div class="match-header">
-                        <span>แมตช์ที่ ${index + 1}</span>
-                        <span>⏱️ ${timeStr}</span>
-                    </div>
-                    <div class="match-body">
-                        <div class="team-score-wrapper">
-                            <div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div>
-                            <div class="score-control">
-                                <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button>
-                                <input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}>
-                                <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button>
-                            </div>
-                        </div>
-                        <div class="match-center-controls">
-                            <span class="vs">VS</span>
-                            <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button>
-                        </div>
-                        <div class="team-score-wrapper">
-                            <div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div>
-                            <div class="score-control">
-                                <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button>
-                                <input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}>
-                                <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
+            document.getElementById('match-date').addEventListener('change', (e) => {
+                loadDataForDate(e.target.value);
+            });
+            document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
+            document.querySelectorAll('.num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
 
-            // NEW: Only add listeners if the user is an admin
-            if (currentUser) {
-                container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
-                container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
-                container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore));
-            }
+            isInitialSetupDone = true;
+        }
+
+        // *** FIX: Centralized rendering calls ***
+        function renderAllPagesForDate(date) {
+            setupPageSetup(); // Always check auth state for setup page
+            renderSchedulePage(date);
+            renderScoresPage(date);
+            renderLeaderboardPage(date);
         }
         
-        async function updateScore(index, team, value) {
-            // Permission check is crucial here
-            if (!currentUser) return;
-            const date = currentDateKey; let dayData = appData[date]; if (!dayData) return;
-            const newSchedule = [...dayData.schedule]; const match = newSchedule[index];
-            if (team === 'home') match.homeScore = value; else match.awayScore = value;
-            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
-            if (error) alert('เกิดข้อผิดพลาดในการอัปเดตคะแนน: ' + error.message);
-        }
-
-        // Functions below this line are mostly unchanged but are included for completeness
         // ... (The rest of the JS code remains the same as the previous version) ...
+        // All other functions like renderSchedulePage, renderScoresPage, etc. are correct.
+        // I'm including them for completeness.
 
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
@@ -528,32 +475,6 @@
             document.getElementById('opener-away').value = '';
         }
 
-        function setupPageSetup() {
-            if (!currentUser) {
-                document.getElementById('page-setup').innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐');
-                return;
-            }
-            if(!document.getElementById('team-toggle-container')){
-                return; 
-            }
-
-            const container = document.getElementById('team-toggle-container');
-            const openerHomeSelect = document.getElementById('opener-home');
-            const openerAwaySelect = document.getElementById('opener-away');
-            container.innerHTML = '';
-            openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
-            openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
-            TEAMS.forEach(team => {
-                const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`;
-                container.innerHTML += toggleHtml;
-                const option = `<option value="${team.slug}">${team.name}</option>`;
-                openerHomeSelect.innerHTML += option;
-                openerAwaySelect.innerHTML += option;
-            });
-            document.getElementById('match-date').addEventListener('change', (e) => loadDataForDate(e.target.value));
-            document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
-        }
-
         async function generateAndSaveSchedule() {
             if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
             
@@ -588,12 +509,6 @@
             }
         }
 
-        function renderAllPagesForDate(date) {
-            renderSchedulePage(date);
-            renderScoresPage(date);
-            renderLeaderboardPage(date);
-        }
-
         async function updateDateSelectors() {
             const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false });
             if (error) return;
@@ -612,6 +527,62 @@
 
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         
+        function renderSchedulePage(date) {
+            const container = document.getElementById('schedule-container');
+            const dayData = appData[date];
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
+            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
+            container.innerHTML = schedule.map((match, index) => { 
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); 
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
+                const homeTeam = TEAMS.find(t => t.slug === match.home); 
+                const awayTeam = TEAMS.find(t => t.slug === match.away); 
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black'; 
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+                const editButtonHtml = currentUser ? `<button class="edit-match-btn" data-index="${index}">✏️ แก้ไข</button>` : '';
+                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${editButtonHtml}</div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><span class="vs">VS</span><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div></div>`; 
+            }).join('');
+            if(currentUser) container.querySelectorAll('.edit-match-btn').forEach(btn => { btn.addEventListener('click', (e) => { const matchIndex = e.currentTarget.dataset.index; openEditMatchModal(matchIndex); }); });
+        }
+        
+        function renderScoresPage(date) {
+            const container = document.getElementById('scores-container');
+            document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน';
+
+            const dayData = appData[date];
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { 
+                container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); 
+                return; 
+            }
+
+            const { schedule, settings } = dayData; 
+            const startTime = new Date(`${date}T${settings.startTime}`);
+            const isReadOnly = !currentUser;
+
+            container.innerHTML = schedule.map((match, index) => {
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
+                const homeTeam = TEAMS.find(t => t.slug === match.home); 
+                const awayTeam = TEAMS.find(t => t.slug === match.away);
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+                const readonlyAttr = isReadOnly ? 'readonly' : '';
+                const disabledAttr = isReadOnly ? 'disabled' : '';
+
+                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-score-wrapper"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button></div></div><div class="match-center-controls"><span class="vs">VS</span><button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button></div><div class="team-score-wrapper"><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button></div></div></div></div>`;
+            }).join('');
+            
+            if (currentUser) {
+                container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
+                container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
+                container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore));
+            }
+        }
+        
         function renderLeaderboardPage(date) {
             const container = document.getElementById('leaderboard-container');
             const dayData = appData[date];
@@ -621,7 +592,15 @@
             const medals = ['🥇', '🥈', '🥉'];
             container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`;
         }
-        
+
+        async function updateScore(index, team, value) {
+            if (!currentUser) return;
+            const date = currentDateKey; let dayData = appData[date]; if (!dayData) return;
+            const newSchedule = [...dayData.schedule]; const match = newSchedule[index];
+            if (team === 'home') match.homeScore = value; else match.awayScore = value;
+            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
+            if (error) alert('เกิดข้อผิดพลาดในการอัปเดตคะแนน: ' + error.message);
+        }
         function updateScoreFromButton(event) {
             const { index, team, op } = event.currentTarget.dataset;
             const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
