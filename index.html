@@ -256,85 +256,106 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** NEW: Final, Guaranteed Fair Scheduling Algorithm (REVISED) ***
+        // *** NEW: Final, Guaranteed Fair Scheduling Algorithm ***
+        /**
+         * สร้างตารางการแข่งขันที่ยุติธรรม โดยใช้หลักการ Double Round Robin เป็นพิมพ์เขียว
+         * และเลือกคู่แข่งขันโดยการันตีว่าจะไม่มีทีมใดได้เล่นติดต่อกัน
+         * @param {string[]} teams - รายชื่อ slug ของทีมที่เข้าร่วม
+         * @param {number} totalMatches - จำนวนนัดการแข่งขันทั้งหมดที่ต้องการ
+         * @param {{home: string, away: string}} opener - คู่นัดเปิดสนาม (ถ้ามี)
+         * @returns {object[]} ตารางการแข่งขัน
+         */
         function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
             let baseTeams = [...teams];
             
-            // 1. สร้างพิมพ์เขียว (Blueprint) แบบ Double Round Robin
+            // 1. สร้างพิมพ์เขียว (Blueprint) การแข่งขันแบบ Double Round Robin ที่สมบูรณ์แบบ
+            // พิมพ์เขียวนี้จะการันตีว่าทุกทีมเจอทุกคน และได้เล่นเหย้า/เยือนอย่างสมดุล
             let blueprint = [];
             let leg1 = [];
-            if (baseTeams.length % 2 !== 0) { baseTeams.push("BYE"); }
+            let leg2 = [];
+
+            // เพิ่มทีมบาย (BYE) ชั่วคราวถ้าจำนวนทีมเป็นเลขคี่ เพื่อให้ตรรกะการวนลูปทำงานได้ง่าย
+            if (baseTeams.length % 2 !== 0) {
+                baseTeams.push("BYE");
+            }
             const numTeams = baseTeams.length;
             const rounds = numTeams - 1;
+
             for (let round = 0; round < rounds; round++) {
+                const roundMatches = [];
                 for (let i = 0; i < numTeams / 2; i++) {
                     const home = baseTeams[i];
                     const away = baseTeams[numTeams - 1 - i];
                     if (home !== "BYE" && away !== "BYE") {
+                        // สำหรับเลกแรก สลับเหย้า/เยือนให้ทีมที่ถูกปักหมุด เพื่อความสมดุล
                         if (i === 0 && round % 2 !== 0) {
-                            leg1.push({ home: away, away: home });
+                            roundMatches.push({ home: away, away: home });
                         } else {
-                            leg1.push({ home: home, away: away });
+                            roundMatches.push({ home: home, away: away });
                         }
                     }
                 }
+                leg1.push(...roundMatches);
+                // หมุนเวียนทีม โดยปักหมุดทีมแรกไว้
                 baseTeams.splice(1, 0, baseTeams.pop());
             }
-            let leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
+            
+            // เลกที่สองคือการสลับเหย้า-เยือนจากเลกแรก
+            leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
             blueprint = [...leg1, ...leg2];
 
-            // 2. สับไพ่ (Shuffle) พิมพ์เขียวเพื่อให้ตารางไม่ซ้ำซาก
-            for (let i = blueprint.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [blueprint[i], blueprint[j]] = [blueprint[j], blueprint[i]];
-            }
-
-            // 3. สร้างตารางจริง
+            // 2. สร้างตารางการแข่งขันจริง (Final Schedule) โดยเลือกจากพิมพ์เขียว
             let finalSchedule = [];
-            let availableMatches = [...blueprint];
-
-            // จัดการนัดเปิดสนาม
             if (opener && opener.home && opener.away) {
                 finalSchedule.push({ home: opener.home, away: opener.away, homeScore: null, awayScore: null });
-                // ลบคู่นัดเปิดออกจาก Pool ที่ว่าง
-                availableMatches = availableMatches.filter(m => 
-                    !(m.home === opener.home && m.away === opener.away) &&
-                    !(m.home === opener.away && m.away === opener.home)
-                );
             }
 
-            // วนลูปสร้างตารางจนครบ
-            while (finalSchedule.length < totalMatches && availableMatches.length > 0) {
+            // ใช้ Set เพื่อติดตามคู่ที่ถูกใช้ไปแล้วจากพิมพ์เขียว (เพื่อความเร็วในการค้นหา)
+            let usedBlueprintMatches = new Set();
+            if(opener && opener.home && opener.away) {
+                const openerKey1 = `${opener.home}-${opener.away}`;
+                const openerKey2 = `${opener.away}-${opener.home}`;
+                usedBlueprintMatches.add(openerKey1);
+                usedBlueprintMatches.add(openerKey2);
+            }
+
+            // วนลูปจนกว่าจะได้จำนวนนัดที่ต้องการ
+            while (finalSchedule.length < totalMatches) {
+                // ดึงรายชื่อทีมที่เพิ่งเล่นไปในนัดล่าสุด
                 const lastPlayed = finalSchedule.length > 0 ? [finalSchedule[finalSchedule.length - 1].home, finalSchedule[finalSchedule.length - 1].away] : [];
                 
-                let bestMatchIndex = -1;
+                let foundMatch = false;
+                // ค้นหาคู่แข่งขันนัดถัดไปจากพิมพ์เขียว
+                for (const match of blueprint) {
+                    const matchKey = `${match.home}-${match.away}`;
+                    // ถ้าคู่นี้เคยใช้แล้ว ให้ข้ามไป
+                    if (usedBlueprintMatches.has(matchKey)) continue;
 
-                // พยายามหาคู่ที่ดีที่สุด (ไม่ใช้ทีมที่เพิ่งแข่ง)
-                bestMatchIndex = availableMatches.findIndex(match => 
-                    !lastPlayed.includes(match.home) && !lastPlayed.includes(match.away)
-                );
-
-                // ถ้าหาไม่เจอจริงๆ (เป็นไปได้ยาก แต่ป้องกันไว้) ให้เลือกคู่แรกที่เหลืออยู่
-                // เพื่อป้องกันการติดลูป และการันตีว่าตารางจะครบ
-                if (bestMatchIndex === -1) {
-                    console.warn("Could not find a non-conflicting match. Relaxing constraint for one match.");
-                    bestMatchIndex = 0; 
+                    // ***เงื่อนไขสำคัญ:*** ทีมในคู่นี้ต้องไม่ซ้ำกับทีมที่เพิ่งเล่นไปนัดล่าสุด
+                    if (!lastPlayed.includes(match.home) && !lastPlayed.includes(match.away)) {
+                        finalSchedule.push({ ...match, homeScore: null, awayScore: null });
+                        usedBlueprintMatches.add(matchKey);
+                        usedBlueprintMatches.add(`${match.away}-${match.home}`); // มาร์คคู่สลับกันว่าใช้แล้วด้วย
+                        foundMatch = true;
+                        break; // เมื่อเจอคู่ที่เหมาะสมแล้ว ให้ออกจากลูปเพื่อไปหานัดถัดไป
+                    }
                 }
-                
-                // เพิ่มคู่ที่เลือกแล้วไปยังตารางสุดท้าย และลบออกจาก Pool
-                const chosenMatch = availableMatches[bestMatchIndex];
-                finalSchedule.push({ ...chosenMatch, homeScore: null, awayScore: null });
-                
-                // ลบคู่ที่เลือก (ทั้งเหย้า-เยือน และ เยือน-เหย้า) ออกจาก Pool ที่เหลือ
-                availableMatches = availableMatches.filter(m => 
-                    !(m.home === chosenMatch.home && m.away === chosenMatch.away) &&
-                    !(m.home === chosenMatch.away && m.away === chosenMatch.home)
-                );
+
+                // กรณีที่หาคู่ไม่ได้เลย (อาจเกิดจากคู่ที่เหลือในพิมพ์เขียวขัดแย้งกับทีมที่เพิ่งเล่นไปทั้งหมด)
+                // ให้ทำการ "รีเซ็ต" pool ของคู่ที่เคยใช้แล้ว เพื่อให้สามารถวนหาต่อได้
+                // วิธีนี้ดีกว่าการเกิด error หรือการละเมิดกฎ "ห้ามเล่นติดกัน"
+                if (!foundMatch) {
+                    usedBlueprintMatches.clear();
+                    if(finalSchedule.length === 0) { // ป้องกัน loop ไม่รู้จบ
+                         throw new Error("ไม่สามารถสร้างตารางได้ อาจมีเงื่อนไขขัดแย้งกัน");
+                    }
+                    continue; // กลับไปลองวนหาใหม่อีกครั้ง
+                }
             }
 
             return finalSchedule.slice(0, totalMatches);
         }
-        
+
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
@@ -467,7 +488,7 @@
 
             let schedule;
             try {
-                console.log("Using REVISED Guaranteed Fair Scheduling Algorithm...");
+                console.log("Using Guaranteed Fair Scheduling Algorithm...");
                 schedule = generateGuaranteedFairSchedule(settings.activeTeams, totalMatches, settings.opener);
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
