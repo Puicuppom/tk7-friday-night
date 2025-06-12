@@ -101,6 +101,7 @@
 <body>
 
     <div id="app">
+        <!-- Auth Section -->
         <div id="auth-section">
             <span id="user-info"></span>
             <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
@@ -108,6 +109,7 @@
         </div>
 
         <main id="content">
+            <!-- Setup Page -->
             <div id="page-setup" class="page">
                 <div id="setup-content-wrapper">
                     <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
@@ -144,6 +146,7 @@
                 <div id="setup-login-prompt"></div>
             </div>
             
+            <!-- Other Pages -->
             <div id="page-schedule" class="page">
                 <div class="page-header">
                     <h1>📅 ตารางการแข่งขัน</h1>
@@ -173,6 +176,8 @@
                  <div id="leaderboard-container" class="leaderboard-container"></div>
             </div>
         </main>
+        
+        <!-- Navigation -->
         <nav class="bottom-nav">
             <button class="nav-btn" data-page="page-setup"><span class="icon">⚙️</span>จัดการทีม</button>
             <button class="nav-btn" data-page="page-schedule"><span class="icon">📅</span>ตารางแข่ง</button>
@@ -181,6 +186,7 @@
         </nav>
     </div>
     
+    <!-- Modals -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn" id="close-login-modal">×</span>
@@ -250,8 +256,8 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** ALGORITHM UPDATE: Stricter "No Consecutive Matches" Rule ***
-        function generateBalancedSchedule(activeTeams, totalMatches) {
+        // *** NEW: True Round Robin Scheduling Algorithm ***
+        function generateStrictRoundRobinSchedule(activeTeams, totalMatches) {
             let schedule = [];
             let teamStats = {};
 
@@ -259,87 +265,91 @@
             activeTeams.forEach(slug => {
                 teamStats[slug] = {
                     p: 0, // Played count
-                    consecutivePlay: 0,
-                    consecutiveRest: 0,
-                    matchups: {} // Opponent tracking
+                    consecutiveRest: 0
                 };
-                activeTeams.forEach(opponentSlug => {
-                    if (slug !== opponentSlug) {
-                        teamStats[slug].matchups[opponentSlug] = 0;
-                    }
-                });
             });
+            
+            // Helper function to create a fresh, shuffled pool of all unique matchups
+            const createMatchupPool = () => {
+                const pool = [];
+                for (let i = 0; i < activeTeams.length; i++) {
+                    for (let j = i + 1; j < activeTeams.length; j++) {
+                        pool.push([activeTeams[i], activeTeams[j]]);
+                    }
+                }
+                // Shuffle for variety
+                return pool.sort(() => Math.random() - 0.5);
+            };
+
+            let matchupPool = createMatchupPool();
 
             // 2. Loop to create each match
-            for (let i = 0; i < totalMatches; i++) {
-                // Teams that MUST play (rested 2 turns)
-                const mustPlay = activeTeams.filter(slug => teamStats[slug].consecutiveRest >= 2);
+            for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
                 
-                // *** CORE LOGIC CHANGE ***
-                // Teams that CAN play are ONLY those who rested in the previous match.
-                // This strictly enforces the "no consecutive matches" rule.
-                const canPlay = activeTeams.filter(slug => teamStats[slug].consecutivePlay === 0);
-
-                if (canPlay.length < 2) {
-                    throw new Error(`ไม่สามารถสร้างตารางได้ในแมตช์ที่ ${i + 1} เนื่องจากมีทีมที่สามารถลงเล่นได้น้อยกว่า 2 ทีม (อาจเกิดจากเงื่อนไขที่ขัดแย้งกัน)`);
+                // If the pool is empty, it means one round robin is complete. Reset it.
+                if (matchupPool.length === 0) {
+                    matchupPool = createMatchupPool();
                 }
 
-                let bestPair = null;
+                // Teams that MUST play (rested >= 2 turns)
+                const mustPlay = activeTeams.filter(slug => teamStats[slug].consecutiveRest >= 2);
+                
+                // Teams that just played and CANNOT play this turn.
+                const lastPlayedTeams = (schedule.length > 0) 
+                    ? [schedule[schedule.length - 1].home, schedule[schedule.length - 1].away]
+                    : [];
+
+                let bestMatch = null;
+                let bestMatchIndexInPool = -1;
                 let lowestScore = Infinity;
 
-                // 3. Find the best pair among all possible combinations of teams that can play
-                for (let j = 0; j < canPlay.length; j++) {
-                    for (let k = j + 1; k < canPlay.length; k++) {
-                        const teamA_slug = canPlay[j];
-                        const teamB_slug = canPlay[k];
+                // 3. Find the best available match from the current pool
+                for (let i = 0; i < matchupPool.length; i++) {
+                    const [teamA, teamB] = matchupPool[i];
 
-                        // Calculate score for this pair
-                        let score = 0;
+                    // *** CORE RULE: Cannot select a team that just played ***
+                    if (lastPlayedTeams.includes(teamA) || lastPlayedTeams.includes(teamB)) {
+                        continue; // Skip this pair
+                    }
 
-                        // Penalty for repeat matchups (high penalty to encourage variety)
-                        score += (teamStats[teamA_slug].matchups[teamB_slug] || 0) * 10;
-                        
-                        // Penalty for total games played (to balance playing time)
-                        score += teamStats[teamA_slug].p + teamStats[teamB_slug].p;
+                    // Score this candidate pair
+                    let score = 0;
 
-                        // Big bonus (negative score) for picking a team that MUST play
-                        if(mustPlay.includes(teamA_slug)) score -= 100;
-                        if(mustPlay.includes(teamB_slug)) score -= 100;
+                    // A. Priority to teams that MUST play (big bonus)
+                    if (mustPlay.includes(teamA)) score -= 100;
+                    if (mustPlay.includes(teamB)) score -= 100;
 
-                        if (score < lowestScore) {
-                            lowestScore = score;
-                            bestPair = [teamA_slug, teamB_slug];
-                        }
+                    // B. Secondary priority to balance total games played
+                    score += teamStats[teamA].p + teamStats[teamB].p;
+
+                    if (score < lowestScore) {
+                        lowestScore = score;
+                        bestMatch = [teamA, teamB];
+                        bestMatchIndexInPool = i;
                     }
                 }
 
-                if (!bestPair) {
-                     throw new Error(`ไม่สามารถหาคู่ที่เหมาะสมได้ในแมตช์ที่ ${i + 1}`);
+                if (!bestMatch) {
+                     throw new Error(`ไม่สามารถหาคู่ที่เหมาะสมได้ในแมตช์ที่ ${matchIndex + 1}. อาจมีทีมไม่พอให้จัดตารางตามเงื่อนไข (เช่น 3 ทีม)`);
                 }
                 
-                const [home, away] = bestPair;
-
-                // 4. Add the chosen match to the schedule
-                schedule.push({ home, away, homeScore: null, awayScore: null });
+                // 4. Add the chosen match to the schedule and remove it from the pool
+                schedule.push({ home: bestMatch[0], away: bestMatch[1], homeScore: null, awayScore: null });
+                matchupPool.splice(bestMatchIndexInPool, 1);
 
                 // 5. Update stats for all teams
                 activeTeams.forEach(slug => {
-                    if (slug === home || slug === away) {
-                        // This team played
+                    if (slug === bestMatch[0] || slug === bestMatch[1]) {
                         teamStats[slug].p++;
-                        teamStats[slug].consecutivePlay++;
                         teamStats[slug].consecutiveRest = 0;
-                        const opponent = slug === home ? away : home;
-                        teamStats[slug].matchups[opponent]++;
                     } else {
-                        // This team rested
-                        teamStats[slug].consecutivePlay = 0;
                         teamStats[slug].consecutiveRest++;
                     }
                 });
             }
             return schedule;
         }
+
 
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -495,7 +505,7 @@
             };
             const date = document.getElementById('match-date').value;
             if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
+            if (settings.activeTeams.length < 3) return alert('อัลกอริทึมนี้ต้องการอย่างน้อย 3 ทีมเพื่อให้ทำงานได้ถูกต้อง');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
             
             const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
@@ -504,16 +514,17 @@
             let schedule;
 
             try {
+                // *** USE THE NEW STRICT ALGORITHM ***
                 if (settings.opener.home && settings.opener.away) {
                     const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
                     if (totalMatches > 1) {
-                         const remainingMatches = generateBalancedSchedule(settings.activeTeams, totalMatches - 1);
+                         const remainingMatches = generateStrictRoundRobinSchedule(settings.activeTeams, totalMatches - 1);
                          schedule = [openerMatch, ...remainingMatches];
                     } else {
                         schedule = [openerMatch];
                     }
                 } else {
-                    schedule = generateBalancedSchedule(settings.activeTeams, totalMatches);
+                    schedule = generateStrictRoundRobinSchedule(settings.activeTeams, totalMatches);
                 }
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
@@ -530,7 +541,6 @@
             }
         }
         
-        // ... [The rest of the JS functions are unchanged and correct] ...
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
             if (!element) return;
