@@ -101,7 +101,6 @@
 <body>
 
     <div id="app">
-        <!-- Auth Section -->
         <div id="auth-section">
             <span id="user-info"></span>
             <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
@@ -109,7 +108,6 @@
         </div>
 
         <main id="content">
-            <!-- Setup Page -->
             <div id="page-setup" class="page">
                 <div id="setup-content-wrapper">
                     <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
@@ -146,7 +144,6 @@
                 <div id="setup-login-prompt"></div>
             </div>
             
-            <!-- Other Pages -->
             <div id="page-schedule" class="page">
                 <div class="page-header">
                     <h1>📅 ตารางการแข่งขัน</h1>
@@ -176,8 +173,6 @@
                  <div id="leaderboard-container" class="leaderboard-container"></div>
             </div>
         </main>
-        
-        <!-- Navigation -->
         <nav class="bottom-nav">
             <button class="nav-btn" data-page="page-setup"><span class="icon">⚙️</span>จัดการทีม</button>
             <button class="nav-btn" data-page="page-schedule"><span class="icon">📅</span>ตารางแข่ง</button>
@@ -186,7 +181,6 @@
         </nav>
     </div>
     
-    <!-- Modals -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn" id="close-login-modal">×</span>
@@ -229,11 +223,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                persistSession: false
-            }
-        });
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const TEAMS = [
             { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' },
@@ -249,106 +239,13 @@
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
         const content = document.getElementById('content');
+        
         const loginBtn = document.getElementById('login-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
-
-        // *** NEW: General purpose, flexible scheduler ***
-        function generateFlexibleSchedule(activeTeams, totalMatches) {
-            let schedule = [];
-            let teamStats = {};
-            activeTeams.forEach(slug => {
-                teamStats[slug] = { p: 0, consecutiveRest: 0, matchups: {} };
-                activeTeams.forEach(oSlug => { if (slug !== oSlug) teamStats[slug].matchups[oSlug] = 0; });
-            });
-
-            for (let i = 0; i < totalMatches; i++) {
-                const lastPlayed = i > 0 ? [schedule[i-1].home, schedule[i-1].away] : [];
-                const canPlay = activeTeams.filter(slug => !lastPlayed.includes(slug));
-                if (canPlay.length < 2) throw new Error(`ไม่สามารถหาทีมที่พร้อมเล่นได้ในแมตช์ที่ ${i + 1}`);
-                
-                let bestPair = null;
-                let lowestScore = Infinity;
-
-                for (let j = 0; j < canPlay.length; j++) {
-                    for (let k = j + 1; k < canPlay.length; k++) {
-                        const t1 = canPlay[j], t2 = canPlay[k];
-                        let score = (teamStats[t1].matchups[t2] * 10) + teamStats[t1].p + teamStats[t2].p;
-                        if (teamStats[t1].consecutiveRest >= 2) score -= 100;
-                        if (teamStats[t2].consecutiveRest >= 2) score -= 100;
-                        if (score < lowestScore) {
-                            lowestScore = score;
-                            bestPair = [t1, t2];
-                        }
-                    }
-                }
-                if (!bestPair) throw new Error(`ไม่สามารถหาคู่ที่เหมาะสมได้ในแมตช์ที่ ${i + 1}`);
-                
-                schedule.push({ home: bestPair[0], away: bestPair[1], homeScore: null, awayScore: null });
-                activeTeams.forEach(slug => {
-                    if (bestPair.includes(slug)) {
-                        teamStats[slug].p++;
-                        teamStats[slug].consecutiveRest = 0;
-                        const opponent = slug === bestPair[0] ? bestPair[1] : bestPair[0];
-                        teamStats[slug].matchups[opponent]++;
-                    } else {
-                        teamStats[slug].consecutiveRest++;
-                    }
-                });
-            }
-            return schedule;
-        }
-
-        // *** NEW: Specialized scheduler for perfect Double Round Robin ***
-        function generateDoubleRoundRobin(activeTeams, totalMatches) {
-            let schedule = [];
-            let teamStats = {};
-            activeTeams.forEach(slug => { teamStats[slug] = { p: 0, consecutiveRest: 0 }; });
-
-            const round1Pool = [];
-            for (let i = 0; i < activeTeams.length; i++) {
-                for (let j = i + 1; j < activeTeams.length; j++) {
-                    round1Pool.push([activeTeams[i], activeTeams[j]]);
-                }
-            }
-            const round2Pool = round1Pool.map(match => [match[1], match[0]]);
-            let fullMatchupPool = [...round1Pool, ...round2Pool].sort(() => Math.random() - 0.5);
-
-            for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
-                const lastPlayed = matchIndex > 0 ? [schedule[matchIndex-1].home, schedule[matchIndex-1].away] : [];
-                
-                let bestMatch = null;
-                let bestMatchIndexInPool = -1;
-
-                // Find the first valid match in the pool
-                for (let i = 0; i < fullMatchupPool.length; i++) {
-                    const [teamA, teamB] = fullMatchupPool[i];
-                    if (!lastPlayed.includes(teamA) && !lastPlayed.includes(teamB)) {
-                        bestMatch = [teamA, teamB];
-                        bestMatchIndexInPool = i;
-                        break; // Found a valid match
-                    }
-                }
-                
-                if (!bestMatch) throw new Error(`ไม่สามารถจัดตารางแบบ Double Round Robin ได้ในแมตช์ที่ ${matchIndex + 1} เนื่องจากข้อจำกัดห้ามแข่งติดกัน`);
-
-                schedule.push({ home: bestMatch[0], away: bestMatch[1], homeScore: null, awayScore: null });
-                fullMatchupPool.splice(bestMatchIndexInPool, 1);
-
-                activeTeams.forEach(slug => {
-                    if (bestMatch.includes(slug)) {
-                        teamStats[slug].p++;
-                        teamStats[slug].consecutiveRest = 0;
-                    } else {
-                        teamStats[slug].consecutiveRest++;
-                    }
-                });
-            }
-            return schedule;
-        }
 
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -377,9 +274,15 @@
         
         async function loadInitialData() {
             setupNavigation();
+            
             document.querySelector('#edit-match-modal .close-modal-btn').addEventListener('click', closeEditMatchModal);
             document.getElementById('save-match-changes-btn').addEventListener('click', saveMatchChanges);
-            window.addEventListener('click', (event) => { if (event.target == document.getElementById('edit-match-modal')) closeEditMatchModal(); });
+            window.addEventListener('click', (event) => {
+                if (event.target == document.getElementById('edit-match-modal')) {
+                    closeEditMatchModal();
+                }
+            });
+
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
@@ -395,9 +298,14 @@
             loginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
             logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
             userInfo.style.display = isLoggedIn ? 'inline-block' : 'none';
+
             document.querySelector('.nav-btn[data-page="page-setup"]').style.display = isLoggedIn ? 'flex' : 'none';
             document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
-            if (!isLoggedIn && activePage === 'page-setup') setActivePage('page-schedule');
+
+            if (!isLoggedIn && activePage === 'page-setup') {
+                setActivePage('page-schedule');
+            }
+            
             renderAllPagesForDate(currentDateKey);
         }
         
@@ -409,11 +317,13 @@
             if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
         }
 
+        // *** FIX: Added page reload on logout ***
         async function handleLogout() {
             const { error } = await db.auth.signOut();
             if (error) {
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
             } else {
+                // Force a page reload to clear all states and ensure a clean logout
                 window.location.reload(); 
             }
         }
@@ -435,15 +345,19 @@
         function setupPageSetup() {
             const contentWrapper = document.getElementById('setup-content-wrapper');
             const loginPrompt = document.getElementById('setup-login-prompt');
+
             if (!currentUser) {
                 contentWrapper.style.display = 'none';
                 loginPrompt.style.display = 'block';
                 loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐');
                 return;
             }
+
             contentWrapper.style.display = 'block';
             loginPrompt.style.display = 'none';
+
             if (isInitialSetupDone) return;
+
             const container = document.getElementById('team-toggle-container');
             const openerHomeSelect = document.getElementById('opener-home');
             const openerAwaySelect = document.getElementById('opener-away');
@@ -457,9 +371,13 @@
                 openerHomeSelect.innerHTML += option;
                 openerAwaySelect.innerHTML += option;
             });
-            document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); });
+
+            document.getElementById('match-date').addEventListener('change', (e) => {
+                loadDataForDate(e.target.value);
+            });
             document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
             document.querySelectorAll('#setup-content-wrapper .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
+
             isInitialSetupDone = true;
         }
 
@@ -470,63 +388,13 @@
             renderLeaderboardPage(date);
         }
         
-        async function generateAndSaveSchedule() {
-            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
-            
-            const settings = { 
-                totalHours: parseFloat(document.getElementById('total-hours').value), 
-                timePerMatch: parseInt(document.getElementById('time-per-match').value), 
-                startTime: document.getElementById('start-time').value, 
-                activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), 
-                opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value } 
-            };
-            const date = document.getElementById('match-date').value;
-            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            if (settings.activeTeams.length < 3) return alert('อัลกอริทึมนี้ต้องการอย่างน้อย 3 ทีมเพื่อให้ทำงานได้ถูกต้อง');
-            if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-            
-            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
-            if (totalMatches < 1) return alert('เวลารวมน้อยเกินไปสำหรับอย่างน้อยหนึ่งแมตช์');
-
-            let schedule;
-            const numTeams = settings.activeTeams.length;
-            const isPerfectDoubleRR = totalMatches === numTeams * (numTeams - 1);
-
-            try {
-                if (isPerfectDoubleRR && !settings.opener.home) {
-                    console.log("Using Perfect Double Round Robin algorithm.");
-                    schedule = generateDoubleRoundRobin(settings.activeTeams, totalMatches);
-                } else {
-                    console.log("Using Flexible Balancing algorithm.");
-                    if (settings.opener.home && settings.opener.away) {
-                        const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
-                        const remainingMatches = (totalMatches > 1) ? generateFlexibleSchedule(settings.activeTeams, totalMatches - 1) : [];
-                        schedule = [openerMatch, ...remainingMatches];
-                    } else {
-                        schedule = generateFlexibleSchedule(settings.activeTeams, totalMatches);
-                    }
-                }
-            } catch (e) {
-                alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
-                return;
-            }
-            
-            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
-            if (error) { 
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
-            } else { 
-                alert('สร้าง/อัปเดตตารางแข่งขันเรียบร้อยแล้ว!'); 
-                await loadDataForDate(date); 
-                setActivePage('page-schedule'); 
-            }
-        }
-        
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
             if (!element) return;
             const originalText = buttonElement.innerHTML;
             buttonElement.innerHTML = '⌛ กำลังสร้าง...';
             buttonElement.disabled = true;
+
             html2canvas(element, { backgroundColor: '#121212', useCORS: true, scale: 2 })
             .then(canvas => {
                 const link = document.createElement('a');
@@ -548,13 +416,17 @@
                   console.log('Realtime Change received!', payload);
                   await updateDateSelectors();
                   const selectedDate = document.getElementById('schedule-date-selector').value;
-                  if (selectedDate) await loadDataForDate(selectedDate);
+                  if (selectedDate) {
+                      await loadDataForDate(selectedDate);
+                  }
               })
               .subscribe();
         }
 
         function setupNavigation() {
-            navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); });
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => setActivePage(button.dataset.page));
+            });
         }
         
         function handleNumberStepper(event) {
@@ -564,9 +436,9 @@
             if (input) {
                 const step = parseFloat(input.step) || 1;
                 const min = parseFloat(input.min);
-                let currentValue = parseFloat(input.value) || 0;
+                let currentValue = parseFloat(input.value) || 0; // Default to 0 if empty
                 let newValue = currentValue + (op * step);
-                if (!isNaN(min) && newValue < min) newValue = min;
+                if (!isNaN(min) && newValue < min) { newValue = min; }
                 input.value = parseFloat(newValue.toPrecision(12));
             }
         }
@@ -590,7 +462,9 @@
             document.getElementById('total-hours').value = settings.totalHours || 2;
             document.getElementById('time-per-match').value = settings.timePerMatch || 10;
             document.getElementById('start-time').value = settings.startTime || '20:00';
-            document.querySelectorAll('.team-switch').forEach(sw => { sw.checked = settings.activeTeams.includes(sw.dataset.teamSlug); });
+            document.querySelectorAll('.team-switch').forEach(sw => { 
+                sw.checked = settings.activeTeams.includes(sw.dataset.teamSlug); 
+            });
             document.getElementById('opener-home').value = settings.opener?.home || '';
             document.getElementById('opener-away').value = settings.opener?.away || '';
         }
@@ -603,6 +477,31 @@
             document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
             document.getElementById('opener-home').value = '';
             document.getElementById('opener-away').value = '';
+        }
+
+        async function generateAndSaveSchedule() {
+            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
+            
+            const date = document.getElementById('match-date').value;
+            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
+            const settings = { totalHours: parseFloat(document.getElementById('total-hours').value), timePerMatch: parseInt(document.getElementById('time-per-match').value), startTime: document.getElementById('start-time').value, activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value } };
+            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
+            if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
+            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
+            let schedule = []; let teamStats = {};
+            settings.activeTeams.forEach(slug => { teamStats[slug] = { played: 0, lastPlayed: -2, consecutiveRest: 0 }; });
+            let pool = [...settings.activeTeams];
+            if (settings.opener.home && settings.opener.away) { schedule.push({ home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null }); teamStats[settings.opener.home].played++; teamStats[settings.opener.home].lastPlayed = 0; teamStats[settings.opener.away].played++; teamStats[settings.opener.away].lastPlayed = 0; settings.activeTeams.forEach(slug => { if (slug !== settings.opener.home && slug !== settings.opener.away) teamStats[slug].consecutiveRest++; }); }
+            for (let i = schedule.length; i < totalMatches; i++) {
+                pool.sort((a, b) => { if (teamStats[a].played !== teamStats[b].played) return teamStats[a].played - teamStats[b].played; return teamStats[b].consecutiveRest - teamStats[a].consecutiveRest; });
+                let homeTeam = null, awayTeam = null;
+                for (let j = 0; j < pool.length; j++) { for (let k = j + 1; k < pool.length; k++) { const potentialHome = pool[j], potentialAway = pool[k]; if ((teamStats[potentialHome].lastPlayed < i - 1 && teamStats[potentialHome].consecutiveRest < 3) && (teamStats[potentialAway].lastPlayed < i - 1 && teamStats[potentialAway].consecutiveRest < 3)) { homeTeam = potentialHome; awayTeam = potentialAway; break; } } if (homeTeam) break; }
+                if (!homeTeam || !awayTeam) { homeTeam = pool[0]; awayTeam = pool[1]; if (!homeTeam || !awayTeam) { alert(`ไม่สามารถสร้างตารางได้ตามเงื่อนไขในแมตช์ที่ ${i + 1}`); return; } }
+                schedule.push({ home: homeTeam, away: awayTeam, homeScore: null, awayScore: null });
+                settings.activeTeams.forEach(slug => { if (slug === homeTeam || slug === awayTeam) { teamStats[slug].played++; teamStats[slug].lastPlayed = i; teamStats[slug].consecutiveRest = 0; } else { teamStats[slug].consecutiveRest++; } });
+            }
+            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
+            if (error) { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); } else { alert('สร้าง/อัปเดตตารางแข่งขันเรียบร้อยแล้ว!'); await loadDataForDate(date); setActivePage('page-schedule'); }
         }
         
         async function deleteDay() {
@@ -636,8 +535,7 @@
             const container = document.getElementById('schedule-container');
             const dayData = appData[date];
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
-            const { schedule, settings } = dayData; 
-            const startTime = new Date(`${date}T${settings.startTime}`);
+            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
             container.innerHTML = schedule.map((match, index) => { 
                 const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); 
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
@@ -656,11 +554,17 @@
         function renderScoresPage(date) {
             const container = document.getElementById('scores-container');
             document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน';
+
             const dayData = appData[date];
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; }
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { 
+                container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); 
+                return; 
+            }
+
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`);
             const isReadOnly = !currentUser;
+
             container.innerHTML = schedule.map((match, index) => {
                 const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
@@ -672,8 +576,10 @@
                 const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
                 const readonlyAttr = isReadOnly ? 'readonly' : '';
                 const disabledAttr = isReadOnly ? 'disabled' : '';
+
                 return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-score-wrapper"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button></div></div><div class="match-center-controls"><span class="vs">VS</span><button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button></div><div class="team-score-wrapper"><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button></div></div></div></div>`;
             }).join('');
+            
             if (currentUser) {
                 container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
                 container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
@@ -742,8 +648,7 @@
             const newHomeSlug = document.getElementById('modal-home-team').value; const newAwaySlug = document.getElementById('modal-away-team').value;
             if (newHomeSlug === newAwaySlug) { alert('ทีมเหย้าและทีมเยือนต้องไม่ซ้ำกัน!'); return; }
             const newSchedule = [...dayData.schedule];
-            newSchedule[currentEditingMatchIndex].home = newHomeSlug;
-            newSchedule[currentEditingMatchIndex].away = newAwaySlug;
+            newSchedule[currentEditingMatchIndex].home = newHomeSlug; newSchedule[currentEditingMatchIndex].away = newAwaySlug;
             const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
             if (error) { alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message); } else { alert('บันทึกการเปลี่ยนแปลงเรียบร้อย!'); closeEditMatchModal(); }
         }
