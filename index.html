@@ -223,7 +223,6 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // *** FIX: Disable session persistence to ensure auto-logout ***
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
                 persistSession: false
@@ -241,16 +240,105 @@
         let currentUser = null;
         let isInitialSetupDone = false;
 
+        // ... [Element selectors remain the same] ...
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
         const content = document.getElementById('content');
-        
         const loginBtn = document.getElementById('login-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
+
+        // *** NEW: Balanced Scheduling Algorithm ***
+        function generateBalancedSchedule(activeTeams, totalMatches) {
+            let schedule = [];
+            let teamStats = {};
+
+            // 1. Initialize stats for each team
+            activeTeams.forEach(slug => {
+                teamStats[slug] = {
+                    p: 0, // Played
+                    consecutivePlay: 0,
+                    consecutiveRest: 0,
+                    matchups: {} // Opponent tracking: { opponent_slug: count }
+                };
+                activeTeams.forEach(opponentSlug => {
+                    if (slug !== opponentSlug) {
+                        teamStats[slug].matchups[opponentSlug] = 0;
+                    }
+                });
+            });
+
+            // 2. Loop to create each match
+            for (let i = 0; i < totalMatches; i++) {
+                // Teams that MUST play (rested 2 turns)
+                const mustPlay = activeTeams.filter(slug => teamStats[slug].consecutiveRest >= 2);
+                
+                // Teams that CAN play (not played 2 turns in a row)
+                const canPlay = activeTeams.filter(slug => teamStats[slug].consecutivePlay < 2);
+
+                if (canPlay.length < 2) {
+                    throw new Error(`ไม่สามารถสร้างตารางได้ในแมตช์ที่ ${i + 1} เนื่องจากมีทีมที่สามารถลงเล่นได้น้อยกว่า 2 ทีม`);
+                }
+
+                let bestPair = null;
+                let lowestScore = Infinity;
+
+                // 3. Find the best pair among all possible combinations of teams that can play
+                for (let j = 0; j < canPlay.length; j++) {
+                    for (let k = j + 1; k < canPlay.length; k++) {
+                        const teamA_slug = canPlay[j];
+                        const teamB_slug = canPlay[k];
+
+                        // Calculate score for this pair
+                        let score = 0;
+
+                        // Penalty for repeat matchups (high penalty)
+                        score += (teamStats[teamA_slug].matchups[teamB_slug] || 0) * 10;
+                        
+                        // Penalty for playing too much
+                        score += teamStats[teamA_slug].p + teamStats[teamB_slug].p;
+
+                        // Bonus (negative score) for picking a team that MUST play
+                        if(mustPlay.includes(teamA_slug)) score -= 100;
+                        if(mustPlay.includes(teamB_slug)) score -= 100;
+
+                        if (score < lowestScore) {
+                            lowestScore = score;
+                            bestPair = [teamA_slug, teamB_slug];
+                        }
+                    }
+                }
+
+                if (!bestPair) {
+                     throw new Error(`ไม่สามารถหาคู่ที่เหมาะสมได้ในแมตช์ที่ ${i + 1}`);
+                }
+                
+                const [home, away] = bestPair;
+
+                // 4. Add the chosen match to the schedule
+                schedule.push({ home, away, homeScore: null, awayScore: null });
+
+                // 5. Update stats for all teams after the match is set
+                activeTeams.forEach(slug => {
+                    if (slug === home || slug === away) {
+                        // This team played
+                        teamStats[slug].p++;
+                        teamStats[slug].consecutivePlay++;
+                        teamStats[slug].consecutiveRest = 0;
+                        const opponent = slug === home ? away : home;
+                        teamStats[slug].matchups[opponent]++;
+                    } else {
+                        // This team rested
+                        teamStats[slug].consecutivePlay = 0;
+                        teamStats[slug].consecutiveRest++;
+                    }
+                });
+            }
+            return schedule;
+        }
 
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -327,7 +415,6 @@
             if (error) {
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
             } else {
-                // Force a page reload to clear all states and ensure a clean logout
                 window.location.reload(); 
             }
         }
@@ -392,6 +479,55 @@
             renderLeaderboardPage(date);
         }
         
+        async function generateAndSaveSchedule() {
+            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
+            
+            const date = document.getElementById('match-date').value;
+            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
+            const settings = { 
+                totalHours: parseFloat(document.getElementById('total-hours').value), 
+                timePerMatch: parseInt(document.getElementById('time-per-match').value), 
+                startTime: document.getElementById('start-time').value, 
+                activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), 
+                opener: { 
+                    home: document.getElementById('opener-home').value, 
+                    away: document.getElementById('opener-away').value 
+                } 
+            };
+            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
+            if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
+
+            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
+            let schedule;
+
+            try {
+                // *** USE THE NEW ALGORITHM ***
+                // Handle opener separately if it exists
+                if (settings.opener.home && settings.opener.away) {
+                    const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
+                    // Generate the rest of the schedule
+                    const remainingMatches = generateBalancedSchedule(settings.activeTeams, totalMatches - 1);
+                    schedule = [openerMatch, ...remainingMatches];
+                } else {
+                    schedule = generateBalancedSchedule(settings.activeTeams, totalMatches);
+                }
+            } catch (e) {
+                alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
+                return;
+            }
+            
+            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
+            if (error) { 
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
+            } else { 
+                alert('สร้าง/อัปเดตตารางแข่งขันที่สมดุลเรียบร้อยแล้ว!'); 
+                await loadDataForDate(date); 
+                setActivePage('page-schedule'); 
+            }
+        }
+        
+        // ... [All other functions from the previous correct version remain unchanged] ...
+        // ... [They are included here for completeness] ...
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
             if (!element) return;
@@ -481,31 +617,6 @@
             document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
             document.getElementById('opener-home').value = '';
             document.getElementById('opener-away').value = '';
-        }
-
-        async function generateAndSaveSchedule() {
-            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
-            
-            const date = document.getElementById('match-date').value;
-            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            const settings = { totalHours: parseFloat(document.getElementById('total-hours').value), timePerMatch: parseInt(document.getElementById('time-per-match').value), startTime: document.getElementById('start-time').value, activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value } };
-            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
-            if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
-            let schedule = []; let teamStats = {};
-            settings.activeTeams.forEach(slug => { teamStats[slug] = { played: 0, lastPlayed: -2, consecutiveRest: 0 }; });
-            let pool = [...settings.activeTeams];
-            if (settings.opener.home && settings.opener.away) { schedule.push({ home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null }); teamStats[settings.opener.home].played++; teamStats[settings.opener.home].lastPlayed = 0; teamStats[settings.opener.away].played++; teamStats[settings.opener.away].lastPlayed = 0; settings.activeTeams.forEach(slug => { if (slug !== settings.opener.home && slug !== settings.opener.away) teamStats[slug].consecutiveRest++; }); }
-            for (let i = schedule.length; i < totalMatches; i++) {
-                pool.sort((a, b) => { if (teamStats[a].played !== teamStats[b].played) return teamStats[a].played - teamStats[b].played; return teamStats[b].consecutiveRest - teamStats[a].consecutiveRest; });
-                let homeTeam = null, awayTeam = null;
-                for (let j = 0; j < pool.length; j++) { for (let k = j + 1; k < pool.length; k++) { const potentialHome = pool[j], potentialAway = pool[k]; if ((teamStats[potentialHome].lastPlayed < i - 1 && teamStats[potentialHome].consecutiveRest < 3) && (teamStats[potentialAway].lastPlayed < i - 1 && teamStats[potentialAway].consecutiveRest < 3)) { homeTeam = potentialHome; awayTeam = potentialAway; break; } } if (homeTeam) break; }
-                if (!homeTeam || !awayTeam) { homeTeam = pool[0]; awayTeam = pool[1]; if (!homeTeam || !awayTeam) { alert(`ไม่สามารถสร้างตารางได้ตามเงื่อนไขในแมตช์ที่ ${i + 1}`); return; } }
-                schedule.push({ home: homeTeam, away: awayTeam, homeScore: null, awayScore: null });
-                settings.activeTeams.forEach(slug => { if (slug === homeTeam || slug === awayTeam) { teamStats[slug].played++; teamStats[slug].lastPlayed = i; teamStats[slug].consecutiveRest = 0; } else { teamStats[slug].consecutiveRest++; } });
-            }
-            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
-            if (error) { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); } else { alert('สร้าง/อัปเดตตารางแข่งขันเรียบร้อยแล้ว!'); await loadDataForDate(date); setActivePage('page-schedule'); }
         }
         
         async function deleteDay() {
