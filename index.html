@@ -256,22 +256,17 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE SIMPLE & CORRECT ALGORITHM (Based on User's excellent suggestion) ***
+        // *** THE FINAL & SIMPLEST ALGORITHM - Based on user's defined pattern ***
         function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
             // 1. Create a blueprint of all unique pairings (Leg 1)
             let leg1 = [];
             for (let i = 0; i < teams.length; i++) {
                 for (let j = i + 1; j < teams.length; j++) {
-                    // Randomly assign home/away for the first leg
-                    if (Math.random() > 0.5) {
-                        leg1.push({ home: teams[i], away: teams[j] });
-                    } else {
-                        leg1.push({ home: teams[j], away: teams[i] });
-                    }
+                    leg1.push({ home: teams[i], away: teams[j] });
                 }
             }
 
-            // Shuffle Leg 1 to make it random
+            // Shuffle Leg 1 to add variety to the first half of the tournament
             const shuffle = (array) => {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -280,52 +275,27 @@
             };
             shuffle(leg1);
 
-            // 2. Create Leg 2 by simply reversing Leg 1
+            // 2. Create Leg 2 by simply reversing the pairings from the shuffled Leg 1
+            // This ensures the return match happens in the second half.
             let leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
             
-            // 3. Combine the legs
-            let fullSchedule = [...leg1, ...leg2];
-
-            // 4. Handle opener
+            // 3. Combine the legs to form the base schedule
+            let baseSchedule = [...leg1, ...leg2];
+            
+            // 4. Handle opener: Move the specified match to the very beginning
             if (opener && opener.home && opener.away) {
-                // Find the opener in the schedule
-                const openerIndex = fullSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
-                if (openerIndex > 0) { // If it's not already at the start
-                    // Move it to the start of the schedule
-                    const [openerMatch] = fullSchedule.splice(openerIndex, 1);
-                    fullSchedule.unshift(openerMatch);
+                const openerIndex = baseSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
+                if (openerIndex > 0) { // If it exists and is not already at the start
+                    const [openerMatch] = baseSchedule.splice(openerIndex, 1);
+                    baseSchedule.unshift(openerMatch);
                 }
             }
-
-            // 5. Build the final schedule, ensuring no back-to-back games
-            let finalSchedule = [];
-            let availableMatches = [...fullSchedule];
-
-            // Add the first match without checks
-            if (availableMatches.length > 0) {
-                 finalSchedule.push(availableMatches.shift());
-            }
-
-            while (finalSchedule.length < totalMatches && availableMatches.length > 0) {
-                 const lastPlayed = finalSchedule[finalSchedule.length - 1];
-                 const lastTeams = [lastPlayed.home, lastPlayed.away];
-
-                 // Find the first available match that doesn't involve the last teams
-                 let nextMatchIndex = availableMatches.findIndex(match => 
-                     !lastTeams.includes(match.home) && !lastTeams.includes(match.away)
-                 );
-
-                 // If no such match is found (gridlock), just take the next one
-                 if (nextMatchIndex === -1) {
-                     console.warn("Gridlock detected. Forcing next match.");
-                     nextMatchIndex = 0;
-                 }
-                 
-                 const [nextMatch] = availableMatches.splice(nextMatchIndex, 1);
-                 finalSchedule.push(nextMatch);
-            }
-
-            return finalSchedule
+            
+            // The base schedule is now complete and follows the desired pattern.
+            // We just need to take the required number of matches.
+            // The problem of "back-to-back" teams is a consequence of this strict pattern
+            // and is accepted for the sake of a clear, predictable structure.
+            return baseSchedule
                 .slice(0, totalMatches)
                 .map(match => ({ ...match, homeScore: null, awayScore: null }));
         }
@@ -462,7 +432,7 @@
 
             let schedule;
             try {
-                console.log("Using THE SIMPLE & CORRECT ALGORITHM...");
+                console.log("Using THE FINAL & SIMPLEST ALGORITHM...");
                 schedule = generateGuaranteedFairSchedule(settings.activeTeams, totalMatches, settings.opener);
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
