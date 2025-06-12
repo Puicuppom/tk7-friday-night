@@ -92,20 +92,42 @@
         .password-reset-link:hover { text-decoration: underline; }
         .admin-only { display: none; }
         body.is-admin .admin-only { display: revert; }
-        #page-schedule .match-body { display: flex; align-items: center; justify-content: space-between; }
-        #page-schedule .team-emblem { flex: 1; }
         .edit-match-layout { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .edit-match-layout .form-group { flex: 1; text-align: center; }
         .edit-match-layout .vs-separator { font-size: 20px; font-weight: 700; color: var(--text-muted); padding-bottom: 20px; }
+        #page-schedule .match-body { display: flex; align-items: center; justify-content: space-between; }
+        #page-schedule .team-emblem { flex: 1; }
     </style>
 </head>
 <body>
     <div id="app">
         <main id="content">
-            <div id="page-setup" class="page admin-only"><div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div><div class="card"><div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div><div class="form-group"><label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label><div class="custom-number-input"><button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button><input type="number" id="total-hours" value="2" step="0.5" min="0.5"><button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button></div></div><div class="form-group"><label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label><div class="custom-number-input"><button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button><input type="number" id="time-per-match" value="10" step="1" min="1"><button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button></div></div><div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div></div><div class="card"><h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div></div><div class="card"><h2>🏠 นัดเปิด-ปิดสนาม (ไม่บังคับ)</h2><div class="form-group"><label for="opener-home">ทีมเหย้านัดเปิดสนาม</label><select id="opener-home"></select></div><div class="form-group"><label for="opener-away">ทีมเยือนนัดเปิดสนาม</label><select id="opener-away"></select></div><hr style="border-color: var(--border-color); margin: 20px 0;"><div class="form-group"><label for="closer-home">ทีมเหย้านัดปิดสนาม</label><select id="closer-home"></select></div><div class="form-group"><label for="closer-away">ทีมเยือนนัดปิดสนาม</label><select id="closer-away"></select></div></div><button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button></div>
-            <div id="page-schedule" class="page"><div class="page-header"><h1>📅 ตารางการแข่งขัน</h1><button id="export-schedule-btn" class="export-btn">📸 Export</button></div><div class="date-selector-container"><select id="schedule-date-selector"></select><button id="delete-day-btn" class="delete-day-btn admin-only">🗑️</button></div><div id="schedule-container"></div></div>
-            <div id="page-scores" class="page"><div class="page-header"><h1>📝 ผลการแข่งขัน</h1><button id="export-scores-btn" class="export-btn">📸 Export</button></div><div class="date-selector-container"><select id="scores-date-selector"></select></div><div id="scores-container"></div></div>
-            <div id="page-leaderboard" class="page"><div class="page-header"><h1>📊 ตารางคะแนน</h1><button id="export-leaderboard-btn" class="export-btn">📸 Export</button></div><div id="leaderboard-container" class="leaderboard-container"></div></div>
+            <div id="page-setup" class="page admin-only">
+                <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
+                <div class="card">
+                    <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
+                    <div class="form-group"><label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label><div class="custom-number-input"><button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button><input type="number" id="total-hours" value="2" step="0.5" min="0.5"><button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button></div></div>
+                    <div class="form-group"><label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label><div class="custom-number-input"><button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button><input type="number" id="time-per-match" value="10" step="1" min="1"><button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button></div></div>
+                    <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
+                </div>
+                <div class="card"><h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div></div>
+                <div class="card"><h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2><div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div><div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div></div>
+                <button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button>
+            </div>
+            <div id="page-schedule" class="page">
+                <div class="page-header"><h1>📅 ตารางการแข่งขัน</h1><button id="export-schedule-btn" class="export-btn">📸 Export</button></div>
+                <div class="date-selector-container"><select id="schedule-date-selector"></select><button id="delete-day-btn" class="delete-day-btn admin-only">🗑️</button></div>
+                <div id="schedule-container"></div>
+            </div>
+            <div id="page-scores" class="page">
+                <div class="page-header"><h1>📝 ผลการแข่งขัน</h1><button id="export-scores-btn" class="export-btn">📸 Export</button></div>
+                 <div class="date-selector-container"><select id="scores-date-selector"></select></div>
+                 <div id="scores-container"></div>
+            </div>
+            <div id="page-leaderboard" class="page">
+                 <div class="page-header"><h1>📊 ตารางคะแนน</h1><button id="export-leaderboard-btn" class="export-btn">📸 Export</button></div>
+                 <div id="leaderboard-container" class="leaderboard-container"></div>
+            </div>
         </main>
         <nav class="bottom-nav"><button id="setup-nav-btn" class="nav-btn admin-only" data-page="page-setup"><span class="icon">⚙️</span>จัดการทีม</button><button class="nav-btn" data-page="page-schedule"><span class="icon">📅</span>ตารางแข่ง</button><button class="nav-btn" data-page="page-scores"><span class="icon">✏️</span>ผลการแข่ง</button><button class="nav-btn" data-page="page-leaderboard"><span class="icon">🏆</span>ตารางคะแนน</button><button id="admin-nav-btn" class="nav-btn"><span class="icon">🔐</span>ผู้ดูแล</button></nav>
     </div>
@@ -133,12 +155,10 @@
         async function init() {
             setupEventListeners();
             setupPageSetup();
-
             db.auth.onAuthStateChange(async (event, session) => {
                 const newAdminStatus = !!session;
                 const statusChanged = isAdmin !== newAdminStatus;
                 isAdmin = newAdminStatus;
-                
                 if (statusChanged) {
                     await updateUIVisibility();
                 }
@@ -146,8 +166,7 @@
                     showUpdatePasswordView();
                 }
             });
-
-            await updateDateSelectors();
+            await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector')?.value || currentDateKey;
             await loadDataForDate(initialDate);
             setActivePage(activePage);
@@ -175,7 +194,6 @@
         
         async function updateUIVisibility() {
             dom.body.classList.toggle('is-admin', isAdmin);
-            dom.adminNavBtn.innerHTML = isAdmin ? `<span class="icon">🔓</span>ออกจากระบบ` : `<span class="icon">🔐</span>ผู้ดูแล`;
             if (!isAdmin && document.querySelector('.page.active.admin-only')) {
                 setActivePage('page-schedule');
             } else {
@@ -205,6 +223,7 @@
                 btn.classList.toggle('active', btn.dataset.page === pageId && btn.id !== 'admin-nav-btn');
             });
             dom.content.scrollTop = 0;
+            renderAllPagesForDate(currentDateKey);
         }
 
         function renderSchedulePage(date) {
@@ -261,11 +280,9 @@
                 startTime: document.getElementById('start-time').value,
                 activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug),
                 opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value },
-                closer: { home: document.getElementById('closer-home').value, away: document.getElementById('closer-away').value }
             };
             if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-            if (settings.closer.home && settings.closer.away && settings.closer.home === settings.closer.away) return alert('ทีมเหย้า-เยือนนัดปิดสนามต้องไม่ซ้ำกัน');
             const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
             if (totalMatches <= 0) return alert('เวลารวมหรือเวลาต่อแมตช์ไม่ถูกต้อง ทำให้ไม่มีการแข่งขันเกิดขึ้น');
             
@@ -285,22 +302,12 @@
             allPossibleMatches.sort(() => Math.random() - 0.5); 
             
             let finalSchedule = allPossibleMatches;
-
             if (settings.opener.home && settings.opener.away) {
                 finalSchedule = finalSchedule.filter(m => !((m.home === settings.opener.home && m.away === settings.opener.away) || (m.home === settings.opener.away && m.away === settings.opener.home)));
                 finalSchedule.unshift({ home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null });
             }
-
-            let closerMatch = null;
-            if (settings.closer.home && settings.closer.away) {
-                closerMatch = { home: settings.closer.home, away: settings.closer.away, homeScore: null, awayScore: null };
-                finalSchedule = finalSchedule.filter(m => !((m.home === settings.closer.home && m.away === settings.closer.away) || (m.home === settings.closer.away && m.away === settings.closer.home)));
-            }
             
-            const sizeLimit = closerMatch ? totalMatches - 1 : totalMatches;
-            finalSchedule = finalSchedule.slice(0, sizeLimit);
-            
-            if (closerMatch) { finalSchedule.push(closerMatch); }
+            finalSchedule = finalSchedule.slice(0, totalMatches);
 
             const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: finalSchedule }, { onConflict: 'match_date' });
             if (error) { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); } 
