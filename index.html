@@ -113,34 +113,34 @@
             <div id="page-setup" class="page">
                 <div id="setup-content-wrapper">
                     <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
+                    
+                    <!-- NEW: Template-based setup -->
                     <div class="card">
-                        <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
                         <div class="form-group">
-                            <label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label>
-                            <div class="custom-number-input">
-                                <button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button>
-                                <input type="number" id="total-hours" value="2" step="0.5" min="0.5">
-                                <button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button>
-                            </div>
+                            <label for="match-date">📆 วันที่แข่งขัน</label>
+                            <input type="date" id="match-date">
                         </div>
+                         <div class="form-group">
+                            <label for="start-time">🕗 เวลาเริ่มแข่งขัน</label>
+                            <input type="time" id="start-time" value="20:00">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2>📖 เลือกรูปแบบตาราง (Template)</h2>
                         <div class="form-group">
-                            <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
-                            <div class="custom-number-input">
-                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
-                                <input type="number" id="time-per-match" value="10" step="1" min="1">
-                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
-                            </div>
+                             <select id="schedule-template-selector"></select>
                         </div>
-                        <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
+
                     <div class="card">
-                        <h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div>
+                        <h2>🎨 กำหนดทีมสำหรับ Template</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 14px;">
+                            เลือกว่าทีมใดจะถูกแทนที่ด้วยหมายเลข 1 ถึง 5 ในตารางที่คุณเลือก
+                        </p>
+                        <div id="team-mapping-container"></div>
                     </div>
-                    <div class="card">
-                        <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
-                        <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
-                        <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
-                    </div>
+
                     <button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button>
                 </div>
                 <div id="setup-login-prompt"></div>
@@ -236,7 +236,7 @@
         });
 
         const TEAMS = [
-            { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' },
+            { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' },
         ];
         
         let appData = {};
@@ -248,73 +248,21 @@
 
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
-        const content = document.getElementById('content');
         const loginBtn = document.getElementById('login-btn');
         const logoutBtn = document.getElementById('logout-btn');
-        const userInfo = document.getElementById('user-info');
-        const loginModal = document.getElementById('login-modal');
-        const closeLoginModalBtn = document.getElementById('close-login-modal');
-        const loginForm = document.getElementById('login-form');
-
-        // *** NEW: Final, Guaranteed Fair Scheduling Algorithm ***
-        function generateUltimateFairSchedule(teams) {
-            let localTeams = [...teams];
-            const originalTeamCount = localTeams.length;
-
-            if (localTeams.length % 2 !== 0) {
-                localTeams.push("BYE");
-            }
-            const numTeams = localTeams.length;
-            const rounds = numTeams - 1;
-
-            let leg1 = [];
-            for (let round = 0; round < rounds; round++) {
-                const roundMatches = [];
-                for (let i = 0; i < numTeams / 2; i++) {
-                    const home = localTeams[i];
-                    const away = localTeams[numTeams - 1 - i];
-                    if(home !== "BYE" && away !== "BYE") {
-                         // Alternate home/away for the fixed team
-                        if (i === 0 && round % 2 !== 0) {
-                            roundMatches.push({ home: away, away: home });
-                        } else {
-                            roundMatches.push({ home: home, away: away });
-                        }
-                    }
-                }
-                leg1.push(roundMatches);
-                // Rotate teams, keeping the first one fixed
-                localTeams.splice(1, 0, localTeams.pop());
-            }
-
-            const leg2 = leg1.flat().map(match => ({ home: match.away, away: match.home }));
-
-            // Interleave the two legs to maximize time between rematches
-            const interleaved = [];
-            const flatLeg1 = leg1.flat();
-            for (let i = 0; i < flatLeg1.length; i++) {
-                interleaved.push(flatLeg1[i]);
-                if (leg2[i]) {
-                    interleaved.push(leg2[i]);
-                }
-            }
-
-            return interleaved.map(match => ({ ...match, homeScore: null, awayScore: null }));
-        }
 
         async function init() {
-            loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
-            logoutBtn.addEventListener('click', handleLogout);
-            closeLoginModalBtn.addEventListener('click', () => loginModal.style.display = 'none');
-            loginForm.addEventListener('submit', handleLogin);
-            window.addEventListener('click', (event) => { if (event.target == loginModal) loginModal.style.display = "none"; });
+            document.getElementById('login-btn').addEventListener('click', () => document.getElementById('login-modal').style.display = 'block');
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('close-login-modal').addEventListener('click', () => document.getElementById('login-modal').style.display = 'none');
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
 
             db.auth.onAuthStateChange(async (event, session) => {
                 currentUser = session ? session.user : null;
                 toggleAdminView(!!currentUser);
                 if (currentUser) {
-                    userInfo.textContent = `👤 ${currentUser.email}`;
-                    loginModal.style.display = 'none';
+                    document.getElementById('user-info').textContent = `👤 ${currentUser.email}`;
+                    document.getElementById('login-modal').style.display = 'none';
                 }
                 
                 if (event === 'INITIAL_SESSION') await loadInitialData();
@@ -324,9 +272,11 @@
         
         async function loadInitialData() {
             setupNavigation();
+            await setupPageSetup(); // Run setup for the template system
+            
             document.querySelector('#edit-match-modal .close-modal-btn').addEventListener('click', closeEditMatchModal);
             document.getElementById('save-match-changes-btn').addEventListener('click', saveMatchChanges);
-            window.addEventListener('click', (event) => { if (event.target == document.getElementById('edit-match-modal')) closeEditMatchModal(); });
+            
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
@@ -341,7 +291,7 @@
         function toggleAdminView(isLoggedIn) {
             loginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
             logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
-            userInfo.style.display = isLoggedIn ? 'inline-block' : 'none';
+            document.getElementById('user-info').style.display = isLoggedIn ? 'inline-block' : 'none';
             document.querySelector('.nav-btn[data-page="page-setup"]').style.display = isLoggedIn ? 'flex' : 'none';
             document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
             if (!isLoggedIn && activePage === 'page-setup') setActivePage('page-schedule');
@@ -365,18 +315,17 @@
         function setActivePage(pageId) {
             if (!currentUser && pageId === 'page-setup') {
                 alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้');
-                loginModal.style.display = 'block';
+                document.getElementById('login-modal').style.display = 'block';
                 return;
             }
             activePage = pageId;
             pages.forEach(page => page.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
             navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
-            content.scrollTop = 0;
             renderAllPagesForDate(currentDateKey);
         }
-
-        function setupPageSetup() {
+        
+        async function setupPageSetup() {
             const contentWrapper = document.getElementById('setup-content-wrapper');
             const loginPrompt = document.getElementById('setup-login-prompt');
             if (!currentUser) {
@@ -387,26 +336,99 @@
             }
             contentWrapper.style.display = 'block';
             loginPrompt.style.display = 'none';
+
             if (isInitialSetupDone) return;
-            const container = document.getElementById('team-toggle-container');
-            const openerHomeSelect = document.getElementById('opener-home');
-            const openerAwaySelect = document.getElementById('opener-away');
-            container.innerHTML = '';
-            openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
-            openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>';
-            TEAMS.forEach(team => {
-                const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`;
-                container.innerHTML += toggleHtml;
-                const option = `<option value="${team.slug}">${team.name}</option>`;
-                openerHomeSelect.innerHTML += option;
-                openerAwaySelect.innerHTML += option;
-            });
-            document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); });
-            document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
-            document.querySelectorAll('#setup-content-wrapper .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
+            
+            // Populate team mapping selectors
+            const mappingContainer = document.getElementById('team-mapping-container');
+            mappingContainer.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const teamOptions = TEAMS.map(t => `<option value="${t.slug}">${t.name}</option>`).join('');
+                mappingContainer.innerHTML += `
+                    <div class="form-group">
+                        <label for="map-team-${i}">ทีมสำหรับหมายเลข ${i}</label>
+                        <select id="map-team-${i}">${teamOptions}</select>
+                    </div>`;
+                // Set default mapping
+                if (TEAMS[i-1]) {
+                    document.getElementById(`map-team-${i}`).value = TEAMS[i-1].slug;
+                }
+            }
+
+            // Populate template selector
+            const templateSelector = document.getElementById('schedule-template-selector');
+            const { data: templates, error } = await db.from('schedule_templates').select('id, name').order('name');
+            if(error) {
+                console.error("Error fetching templates:", error);
+                templateSelector.innerHTML = '<option>ไม่สามารถโหลดเทมเพลตได้</option>';
+            } else {
+                templateSelector.innerHTML = templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            }
+            
+            document.getElementById('generate-schedule-btn').addEventListener('click', generateScheduleFromTemplate);
             isInitialSetupDone = true;
         }
 
+        async function generateScheduleFromTemplate() {
+             if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
+            
+            const date = document.getElementById('match-date').value;
+            const startTime = document.getElementById('start-time').value;
+            const templateId = document.getElementById('schedule-template-selector').value;
+
+            if (!date || !templateId) {
+                return alert('กรุณาเลือกวันที่และรูปแบบตาราง');
+            }
+
+            // Create the team mapping
+            const teamMap = {};
+            const selectedTeams = new Set();
+            for (let i = 1; i <= 5; i++) {
+                const selectedTeam = document.getElementById(`map-team-${i}`).value;
+                if(selectedTeams.has(selectedTeam)) {
+                    return alert('ไม่สามารถเลือกทีมเดียวกันซ้ำในแต่ละหมายเลขได้');
+                }
+                teamMap[i] = selectedTeam;
+                selectedTeams.add(selectedTeam);
+            }
+
+            // Fetch the template data
+            const { data: template, error: templateError } = await db
+                .from('schedule_templates')
+                .select('schedule_data')
+                .eq('id', templateId)
+                .single();
+            
+            if (templateError || !template) {
+                return alert('ไม่สามารถดึงข้อมูลเทมเพลตได้: ' + (templateError?.message || 'ไม่พบเทมเพลต'));
+            }
+
+            // Map the template data to the selected teams
+            const schedule = template.schedule_data.map(match => ({
+                home: teamMap[match.home],
+                away: teamMap[match.away],
+                homeScore: null,
+                awayScore: null
+            }));
+
+            const settings = {
+                startTime: startTime,
+                // These are no longer used for generation but are good to store
+                activeTeams: Object.values(teamMap), 
+                templateId: templateId
+            };
+            
+            // Save to the database
+            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
+            if (error) { 
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
+            } else { 
+                alert('สร้าง/อัปเดตตารางแข่งขันจากเทมเพลตเรียบร้อยแล้ว!'); 
+                await loadDataForDate(date); 
+                setActivePage('page-schedule'); 
+            }
+        }
+        
         function renderAllPagesForDate(date) {
             setupPageSetup(); 
             renderSchedulePage(date);
@@ -414,75 +436,7 @@
             renderLeaderboardPage(date);
         }
         
-        async function generateAndSaveSchedule() {
-            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
-            
-            const settings = { 
-                totalHours: parseFloat(document.getElementById('total-hours').value), 
-                timePerMatch: parseInt(document.getElementById('time-per-match').value), 
-                startTime: document.getElementById('start-time').value, 
-                activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), 
-                opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value } 
-            };
-            const date = document.getElementById('match-date').value;
-            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
-            if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-            
-            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
-            if (totalMatches < 1) return alert('เวลารวมน้อยเกินไปสำหรับอย่างน้อยหนึ่งแมตช์');
-
-            let schedule;
-            try {
-                console.log("Using ULTIMATE Fair Scheduling Algorithm...");
-                let blueprint = generateUltimateFairSchedule(settings.activeTeams);
-
-                // If there's an opener, inject it and adjust the schedule
-                if (settings.opener.home && settings.opener.away) {
-                    const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
-                    // Remove the opener and its reverse from the blueprint to avoid duplication
-                    blueprint = blueprint.filter(match => 
-                        !(match.home === settings.opener.home && match.away === settings.opener.away) &&
-                        !(match.home === settings.opener.away && match.away === settings.opener.home)
-                    );
-                    schedule = [openerMatch, ...blueprint].slice(0, totalMatches);
-                } else {
-                    schedule = blueprint.slice(0, totalMatches);
-                }
-                
-                // Final check to ensure no consecutive matches if opener was used
-                for(let i = 1; i < schedule.length; i++) {
-                    const lastMatchTeams = [schedule[i-1].home, schedule[i-1].away];
-                    const currentMatchTeams = [schedule[i].home, schedule[i].away];
-                    if(lastMatchTeams.includes(currentMatchTeams[0]) || lastMatchTeams.includes(currentMatchTeams[1])) {
-                        // This indicates a conflict, likely caused by the opener.
-                        // We simply find the next valid match in the blueprint to swap with.
-                        for(let j=i+1; j < blueprint.length; j++){
-                            const nextMatchTeams = [blueprint[j].home, blueprint[j].away];
-                            if(!lastMatchTeams.includes(nextMatchTeams[0]) && !lastMatchTeams.includes(nextMatchTeams[1])){
-                                // Swap to resolve conflict
-                                [schedule[i], blueprint[j]] = [blueprint[j], schedule[i]];
-                                break;
-                            }
-                        }
-                    }
-                }
-
-            } catch (e) {
-                alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
-                return;
-            }
-            
-            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
-            if (error) { 
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
-            } else { 
-                alert('สร้าง/อัปเดตตารางแข่งขันที่สมบูรณ์แบบเรียบร้อยแล้ว!'); 
-                await loadDataForDate(date); 
-                setActivePage('page-schedule'); 
-            }
-        }
-        
+        // ... [The rest of the functions from exportElementAsPNG onwards are correct and unchanged] ...
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
             if (!element) return;
@@ -519,20 +473,6 @@
             navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); });
         }
         
-        function handleNumberStepper(event) {
-            const op = parseInt(event.currentTarget.dataset.op);
-            const targetId = event.currentTarget.dataset.target;
-            const input = document.getElementById(targetId);
-            if (input) {
-                const step = parseFloat(input.step) || 1;
-                const min = parseFloat(input.min);
-                let currentValue = parseFloat(input.value) || 0;
-                let newValue = currentValue + (op * step);
-                if (!isNaN(min) && newValue < min) newValue = min;
-                input.value = parseFloat(newValue.toPrecision(12));
-            }
-        }
-
         async function loadDataForDate(date) {
             currentDateKey = date;
             if(document.getElementById('match-date')) document.getElementById('match-date').value = date;
@@ -549,22 +489,11 @@
 
         function loadSettingsFromData(settings) {
             if (!settings || !currentUser) return;
-            document.getElementById('total-hours').value = settings.totalHours || 2;
-            document.getElementById('time-per-match').value = settings.timePerMatch || 10;
-            document.getElementById('start-time').value = settings.startTime || '20:00';
-            document.querySelectorAll('.team-switch').forEach(sw => { sw.checked = settings.activeTeams.includes(sw.dataset.teamSlug); });
-            document.getElementById('opener-home').value = settings.opener?.home || '';
-            document.getElementById('opener-away').value = settings.opener?.away || '';
+            // No need to load old settings, template system replaces them
         }
         
         function resetSettingsForm() {
-            if (!currentUser) return;
-            document.getElementById('total-hours').value = 2;
-            document.getElementById('time-per-match').value = 10;
-            document.getElementById('start-time').value = '20:00';
-            document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
-            document.getElementById('opener-home').value = '';
-            document.getElementById('opener-away').value = '';
+            // No need to reset old settings
         }
         
         async function deleteDay() {
@@ -600,8 +529,11 @@
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`);
+            // Calculate time per match based on total matches. Default to 8 mins if not calculable
+            const timePerMatch = (schedule.length > 1) ? (2 * 60 / schedule.length) : 8;
+
             container.innerHTML = schedule.map((match, index) => { 
-                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); 
+                const matchTime = new Date(new Date(startTime).getTime() + index * timePerMatch * 60000); 
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
                 const homeTeam = TEAMS.find(t => t.slug === match.home); 
                 const awayTeam = TEAMS.find(t => t.slug === match.away); 
@@ -622,9 +554,10 @@
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; }
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`);
+            const timePerMatch = (schedule.length > 1) ? (2 * 60 / schedule.length) : 8;
             const isReadOnly = !currentUser;
             container.innerHTML = schedule.map((match, index) => {
-                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
+                const matchTime = new Date(new Date(startTime).getTime() + index * timePerMatch * 60000);
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
                 const homeTeam = TEAMS.find(t => t.slug === match.home); 
                 const awayTeam = TEAMS.find(t => t.slug === match.away);
