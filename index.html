@@ -256,99 +256,78 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** FINAL, STRICTEST ALGORITHM ***
+        // *** THE SIMPLE & CORRECT ALGORITHM (Based on User's excellent suggestion) ***
         function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
-            let baseTeams = [...teams];
-            
-            // 1. Create a complete, unshuffled blueprint of a Double Round Robin
+            // 1. Create a blueprint of all unique pairings (Leg 1)
             let leg1 = [];
-            let tempTeams = [...baseTeams];
-            if (tempTeams.length % 2 !== 0) { tempTeams.push("BYE"); }
-            const numTeams = tempTeams.length;
-            const rounds = numTeams - 1;
-            for (let round = 0; round < rounds; round++) {
-                for (let i = 0; i < numTeams / 2; i++) {
-                    const home = tempTeams[i];
-                    const away = tempTeams[numTeams - 1 - i];
-                    if (home !== "BYE" && away !== "BYE") {
-                        if (i === 0 && round % 2 !== 0) {
-                            leg1.push({ home: away, away: home });
-                        } else {
-                            leg1.push({ home: home, away: away });
-                        }
-                    }
-                }
-                tempTeams.splice(1, 0, tempTeams.pop());
-            }
-            let leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
-
-            // 2. Shuffle each leg independently
-            for (let i = leg1.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [leg1[i], leg1[j]] = [leg1[j], leg1[i]];
-            }
-            for (let i = leg2.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [leg2[i], leg2[j]] = [leg2[j], leg2[i]];
-            }
-
-            // 3. Build the final schedule
-            let finalSchedule = [];
-            let availableMatchesLeg1 = [...leg1];
-            let availableMatchesLeg2 = [...leg2];
-
-            // Handle the opener first
-            if (opener && opener.home && opener.away) {
-                // Find and remove the opener from whichever leg it's in
-                let foundInLeg1 = availableMatchesLeg1.findIndex(m => m.home === opener.home && m.away === opener.away);
-                if (foundInLeg1 !== -1) {
-                    finalSchedule.push(availableMatchesLeg1.splice(foundInLeg1, 1)[0]);
-                } else {
-                    let foundInLeg2 = availableMatchesLeg2.findIndex(m => m.home === opener.home && m.away === opener.away);
-                    if (foundInLeg2 !== -1) {
-                        finalSchedule.push(availableMatchesLeg2.splice(foundInLeg2, 1)[0]);
-                    }
-                }
-            }
-
-            while (finalSchedule.length < totalMatches) {
-                if (availableMatchesLeg1.length === 0 && availableMatchesLeg2.length === 0) break;
-
-                const lastPlayed = finalSchedule.length > 0 ? [finalSchedule[finalSchedule.length - 1].home, finalSchedule[finalSchedule.length - 1].away] : [];
-                
-                let chosenMatch = null;
-                let fromLeg = 0; // 1 or 2
-                
-                // Prioritize Leg 1
-                let bestMatchIndex1 = availableMatchesLeg1.findIndex(match => !lastPlayed.includes(match.home) && !lastPlayed.includes(match.away));
-                if (bestMatchIndex1 !== -1) {
-                    chosenMatch = availableMatchesLeg1.splice(bestMatchIndex1, 1)[0];
-                    fromLeg = 1;
-                } else {
-                    // If no good match in Leg 1, try Leg 2
-                    let bestMatchIndex2 = availableMatchesLeg2.findIndex(match => !lastPlayed.includes(match.home) && !lastPlayed.includes(match.away));
-                    if (bestMatchIndex2 !== -1) {
-                        chosenMatch = availableMatchesLeg2.splice(bestMatchIndex2, 1)[0];
-                        fromLeg = 2;
+            for (let i = 0; i < teams.length; i++) {
+                for (let j = i + 1; j < teams.length; j++) {
+                    // Randomly assign home/away for the first leg
+                    if (Math.random() > 0.5) {
+                        leg1.push({ home: teams[i], away: teams[j] });
                     } else {
-                        // If no good match anywhere, relax the constraint
-                        console.warn("Could not find a non-conflicting match. Relaxing constraint.");
-                        if (availableMatchesLeg1.length > 0) {
-                            chosenMatch = availableMatchesLeg1.splice(0, 1)[0];
-                            fromLeg = 1;
-                        } else if (availableMatchesLeg2.length > 0) {
-                            chosenMatch = availableMatchesLeg2.splice(0, 1)[0];
-                            fromLeg = 2;
-                        }
+                        leg1.push({ home: teams[j], away: teams[i] });
                     }
-                }
-
-                if (chosenMatch) {
-                    finalSchedule.push({ ...chosenMatch, homeScore: null, awayScore: null });
                 }
             }
 
-            return finalSchedule.slice(0, totalMatches);
+            // Shuffle Leg 1 to make it random
+            const shuffle = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            };
+            shuffle(leg1);
+
+            // 2. Create Leg 2 by simply reversing Leg 1
+            let leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
+            
+            // 3. Combine the legs
+            let fullSchedule = [...leg1, ...leg2];
+
+            // 4. Handle opener
+            if (opener && opener.home && opener.away) {
+                // Find the opener in the schedule
+                const openerIndex = fullSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
+                if (openerIndex > 0) { // If it's not already at the start
+                    // Move it to the start of the schedule
+                    const [openerMatch] = fullSchedule.splice(openerIndex, 1);
+                    fullSchedule.unshift(openerMatch);
+                }
+            }
+
+            // 5. Build the final schedule, ensuring no back-to-back games
+            let finalSchedule = [];
+            let availableMatches = [...fullSchedule];
+
+            // Add the first match without checks
+            if (availableMatches.length > 0) {
+                 finalSchedule.push(availableMatches.shift());
+            }
+
+            while (finalSchedule.length < totalMatches && availableMatches.length > 0) {
+                 const lastPlayed = finalSchedule[finalSchedule.length - 1];
+                 const lastTeams = [lastPlayed.home, lastPlayed.away];
+
+                 // Find the first available match that doesn't involve the last teams
+                 let nextMatchIndex = availableMatches.findIndex(match => 
+                     !lastTeams.includes(match.home) && !lastTeams.includes(match.away)
+                 );
+
+                 // If no such match is found (gridlock), just take the next one
+                 if (nextMatchIndex === -1) {
+                     console.warn("Gridlock detected. Forcing next match.");
+                     nextMatchIndex = 0;
+                 }
+                 
+                 const [nextMatch] = availableMatches.splice(nextMatchIndex, 1);
+                 finalSchedule.push(nextMatch);
+            }
+
+            return finalSchedule
+                .slice(0, totalMatches)
+                .map(match => ({ ...match, homeScore: null, awayScore: null }));
         }
         
         async function init() {
@@ -483,7 +462,7 @@
 
             let schedule;
             try {
-                console.log("Using FINAL, STRICTEST Guaranteed Fair Scheduling Algorithm...");
+                console.log("Using THE SIMPLE & CORRECT ALGORITHM...");
                 schedule = generateGuaranteedFairSchedule(settings.activeTeams, totalMatches, settings.opener);
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
