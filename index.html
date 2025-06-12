@@ -240,7 +240,6 @@
         let currentUser = null;
         let isInitialSetupDone = false;
 
-        // ... [Element selectors remain the same] ...
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
         const content = document.getElementById('content');
@@ -251,18 +250,18 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** NEW: Balanced Scheduling Algorithm ***
+        // *** ALGORITHM UPDATE: Stricter "No Consecutive Matches" Rule ***
         function generateBalancedSchedule(activeTeams, totalMatches) {
             let schedule = [];
             let teamStats = {};
 
-            // 1. Initialize stats for each team
+            // 1. Initialize detailed stats for each team
             activeTeams.forEach(slug => {
                 teamStats[slug] = {
-                    p: 0, // Played
+                    p: 0, // Played count
                     consecutivePlay: 0,
                     consecutiveRest: 0,
-                    matchups: {} // Opponent tracking: { opponent_slug: count }
+                    matchups: {} // Opponent tracking
                 };
                 activeTeams.forEach(opponentSlug => {
                     if (slug !== opponentSlug) {
@@ -276,11 +275,13 @@
                 // Teams that MUST play (rested 2 turns)
                 const mustPlay = activeTeams.filter(slug => teamStats[slug].consecutiveRest >= 2);
                 
-                // Teams that CAN play (not played 2 turns in a row)
-                const canPlay = activeTeams.filter(slug => teamStats[slug].consecutivePlay < 2);
+                // *** CORE LOGIC CHANGE ***
+                // Teams that CAN play are ONLY those who rested in the previous match.
+                // This strictly enforces the "no consecutive matches" rule.
+                const canPlay = activeTeams.filter(slug => teamStats[slug].consecutivePlay === 0);
 
                 if (canPlay.length < 2) {
-                    throw new Error(`ไม่สามารถสร้างตารางได้ในแมตช์ที่ ${i + 1} เนื่องจากมีทีมที่สามารถลงเล่นได้น้อยกว่า 2 ทีม`);
+                    throw new Error(`ไม่สามารถสร้างตารางได้ในแมตช์ที่ ${i + 1} เนื่องจากมีทีมที่สามารถลงเล่นได้น้อยกว่า 2 ทีม (อาจเกิดจากเงื่อนไขที่ขัดแย้งกัน)`);
                 }
 
                 let bestPair = null;
@@ -295,13 +296,13 @@
                         // Calculate score for this pair
                         let score = 0;
 
-                        // Penalty for repeat matchups (high penalty)
+                        // Penalty for repeat matchups (high penalty to encourage variety)
                         score += (teamStats[teamA_slug].matchups[teamB_slug] || 0) * 10;
                         
-                        // Penalty for playing too much
+                        // Penalty for total games played (to balance playing time)
                         score += teamStats[teamA_slug].p + teamStats[teamB_slug].p;
 
-                        // Bonus (negative score) for picking a team that MUST play
+                        // Big bonus (negative score) for picking a team that MUST play
                         if(mustPlay.includes(teamA_slug)) score -= 100;
                         if(mustPlay.includes(teamB_slug)) score -= 100;
 
@@ -321,7 +322,7 @@
                 // 4. Add the chosen match to the schedule
                 schedule.push({ home, away, homeScore: null, awayScore: null });
 
-                // 5. Update stats for all teams after the match is set
+                // 5. Update stats for all teams
                 activeTeams.forEach(slug => {
                     if (slug === home || slug === away) {
                         // This team played
@@ -482,8 +483,6 @@
         async function generateAndSaveSchedule() {
             if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
             
-            const date = document.getElementById('match-date').value;
-            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
             const settings = { 
                 totalHours: parseFloat(document.getElementById('total-hours').value), 
                 timePerMatch: parseInt(document.getElementById('time-per-match').value), 
@@ -494,20 +493,25 @@
                     away: document.getElementById('opener-away').value 
                 } 
             };
+            const date = document.getElementById('match-date').value;
+            if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
             if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
-
+            
             const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
+            if (totalMatches < 1) return alert('เวลารวมน้อยเกินไปสำหรับอย่างน้อยหนึ่งแมตช์');
+
             let schedule;
 
             try {
-                // *** USE THE NEW ALGORITHM ***
-                // Handle opener separately if it exists
                 if (settings.opener.home && settings.opener.away) {
                     const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
-                    // Generate the rest of the schedule
-                    const remainingMatches = generateBalancedSchedule(settings.activeTeams, totalMatches - 1);
-                    schedule = [openerMatch, ...remainingMatches];
+                    if (totalMatches > 1) {
+                         const remainingMatches = generateBalancedSchedule(settings.activeTeams, totalMatches - 1);
+                         schedule = [openerMatch, ...remainingMatches];
+                    } else {
+                        schedule = [openerMatch];
+                    }
                 } else {
                     schedule = generateBalancedSchedule(settings.activeTeams, totalMatches);
                 }
@@ -526,8 +530,7 @@
             }
         }
         
-        // ... [All other functions from the previous correct version remain unchanged] ...
-        // ... [They are included here for completeness] ...
+        // ... [The rest of the JS functions are unchanged and correct] ...
         function exportElementAsPNG(elementId, filename, buttonElement) {
             const element = document.getElementById(elementId);
             if (!element) return;
