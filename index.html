@@ -92,11 +92,11 @@
         .password-reset-link:hover { text-decoration: underline; }
         .admin-only { display: none; }
         body.is-admin .admin-only { display: revert; }
+        #page-schedule .match-body { display: flex; align-items: center; justify-content: space-between; }
+        #page-schedule .team-emblem { flex: 1; text-align: center; }
         .edit-match-layout { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .edit-match-layout .form-group { flex: 1; text-align: center; }
         .edit-match-layout .vs-separator { font-size: 20px; font-weight: 700; color: var(--text-muted); padding-bottom: 20px; }
-        #page-schedule .match-body { display: flex; align-items: center; justify-content: space-between; }
-        #page-schedule .team-emblem { flex: 1; text-align: center; }
     </style>
 </head>
 <body>
@@ -133,17 +133,21 @@
         async function init() {
             setupEventListeners();
             setupPageSetup();
+
             db.auth.onAuthStateChange(async (event, session) => {
                 const newAdminStatus = !!session;
                 const statusChanged = isAdmin !== newAdminStatus;
                 isAdmin = newAdminStatus;
+                
                 if (statusChanged) {
                     await updateUIVisibility();
                 }
+
                 if (event === 'PASSWORD_RECOVERY') {
                     showUpdatePasswordView();
                 }
             });
+            
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector')?.value || currentDateKey;
             await loadDataForDate(initialDate);
@@ -178,6 +182,7 @@
                 await loadDataForDate(currentDateKey);
             }
         }
+
         function handleAdminNavClick() { if (isAdmin) { if(confirm("คุณต้องการออกจากระบบผู้ดูแลใช่หรือไม่?")) { handleAdminLogout(); } } else { dom.adminModal.style.display = 'block'; } }
         async function handleAdminLogin() { const email = document.getElementById('admin-email').value; const password = document.getElementById('admin-password').value; const loginBtn = document.getElementById('admin-login-btn'); loginBtn.disabled = true; loginBtn.textContent = 'กำลังเข้าสู่ระบบ...'; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) { alert('อีเมลหรือรหัสผ่านไม่ถูกต้อง'); loginBtn.disabled = false; loginBtn.textContent = 'เข้าสู่ระบบ'; } else { dom.adminModal.style.display = 'none'; loginBtn.disabled = false; loginBtn.textContent = 'เข้าสู่ระบบ'; } }
         async function handleAdminLogout() { await db.auth.signOut(); }
@@ -306,6 +311,7 @@
         function exportElementAsPNG(elementId, filename, buttonElement) { const elementToCapture = document.getElementById(elementId); const mainContent = dom.content; if (!elementToCapture) return; const originalText = buttonElement.innerHTML; buttonElement.innerHTML = '⌛ กำลังสร้าง...'; buttonElement.disabled = true; const originalOverflow = mainContent.style.overflowY; const originalHeight = mainContent.style.height; mainContent.style.overflowY = 'visible'; mainContent.style.height = 'auto'; html2canvas(elementToCapture, { backgroundColor: '#121212', useCORS: true, scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = filename; link.href = canvas.toDataURL('image/png'); link.click(); }).catch(() => { alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ'); }).finally(() => { mainContent.style.overflowY = originalOverflow; mainContent.style.height = originalHeight; buttonElement.innerHTML = originalText; buttonElement.disabled = false; }); }
         function setupPageSetup() { const selects = [document.getElementById('opener-home'), document.getElementById('opener-away')]; selects.forEach(s => s.innerHTML = '<option value="">-- ไม่เลือก --</option>'); document.getElementById('team-toggle-container').innerHTML = ''; TEAMS.forEach(team => { const option = `<option value="${team.slug}">${team.name}</option>`; selects.forEach(s => s.innerHTML += option); const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; document.getElementById('team-toggle-container').innerHTML += toggleHtml; }); }
         async function loadDataForDate(date) { currentDateKey = date; if(dom.matchDateInput) dom.matchDateInput.value = date; const { data } = await db.from('match_days').select('*').eq('match_date', date).single(); appData[date] = data; if (data) { loadSettingsFromData(data.settings); } else { resetSettingsForm(); } renderAllPagesForDate(date); }
+        function listenToRealtimeChanges() { db.channel('match_days_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async () => { await updateDateSelectors(); const selectedDate = document.getElementById('schedule-date-selector')?.value; if (selectedDate) await loadDataForDate(selectedDate); }).subscribe(); }
 
         init();
     });
