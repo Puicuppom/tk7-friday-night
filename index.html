@@ -256,12 +256,12 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE PROVEN & CORRECT CIRCLE METHOD ALGORITHM ***
+        // *** THE PROVEN CIRCLE METHOD ALGORITHM ***
         function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
             
             let schedule = [];
             let teamList = [...teams];
-            const BYE = "BYE";
+            const BYE = "BYE_TEAM"; // Use a unique identifier for the bye
 
             // Add a bye if the number of teams is odd
             if (teamList.length % 2 !== 0) {
@@ -300,15 +300,18 @@
             const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
 
             // Check for and fix the seam between Leg 1 and Leg 2
-            const lastMatchLeg1 = leg1[leg1.length - 1];
-            const firstMatchLeg2 = leg2[0];
-            if(lastMatchLeg1 && firstMatchLeg2) {
-                const lastTeams = [lastMatchLeg1.home, lastMatchLeg1.away];
-                if(lastTeams.includes(firstMatchLeg2.home) || lastTeams.includes(firstMatchLeg2.away)) {
-                    // Simple fix: if the first match of leg 2 conflicts, swap it with the second.
-                    // This is a robust solution for this specific seam problem.
-                    if (leg2.length > 1) {
-                        [leg2[0], leg2[1]] = [leg2[1], leg2[0]];
+            if (leg1.length > 0 && leg2.length > 0) {
+                const lastMatchLeg1 = leg1[leg1.length - 1];
+                const firstMatchLeg2 = leg2[0];
+                if (lastMatchLeg1 && firstMatchLeg2) {
+                    const lastTeams = [lastMatchLeg1.home, lastMatchLeg1.away];
+                    if (lastTeams.includes(firstMatchLeg2.home) || lastTeams.includes(firstMatchLeg2.away)) {
+                        // Simple fix: if the first match of leg 2 conflicts, swap it with the second.
+                        // This is a robust solution for this specific seam problem.
+                        if (leg2.length > 1) {
+                            console.log("Seam conflict detected. Swapping first two matches of leg 2.");
+                            [leg2[0], leg2[1]] = [leg2[1], leg2[0]];
+                        }
                     }
                 }
             }
