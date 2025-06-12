@@ -223,11 +223,12 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
+        // *** FIX: Disable session persistence to ensure auto-logout ***
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-        persistSession: false // *** นี่คือหัวใจของการแก้ไข ***
-    }
-});
+            auth: {
+                persistSession: false
+            }
+        });
 
         const TEAMS = [
             { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' },
@@ -321,7 +322,6 @@
             if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
         }
 
-        // *** FIX: Added page reload on logout ***
         async function handleLogout() {
             const { error } = await db.auth.signOut();
             if (error) {
@@ -440,7 +440,7 @@
             if (input) {
                 const step = parseFloat(input.step) || 1;
                 const min = parseFloat(input.min);
-                let currentValue = parseFloat(input.value) || 0; // Default to 0 if empty
+                let currentValue = parseFloat(input.value) || 0;
                 let newValue = currentValue + (op * step);
                 if (!isNaN(min) && newValue < min) { newValue = min; }
                 input.value = parseFloat(newValue.toPrecision(12));
