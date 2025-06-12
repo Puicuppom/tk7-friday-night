@@ -116,20 +116,8 @@
                     <div class="card">
                         <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
                         <div class="form-group">
-                            <label for="total-hours">🕒 เวลารวมการแข่งขัน (ชั่วโมง)</label>
-                            <div class="custom-number-input">
-                                <button class="num-stepper-btn" data-op="-1" data-target="total-hours">-</button>
-                                <input type="number" id="total-hours" value="2" step="0.5" min="0.5">
-                                <button class="num-stepper-btn" data-op="1" data-target="total-hours">+</button>
-                            </div>
-                        </div>
-                        <div class="form-group">
                             <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
-                            <div class="custom-number-input">
-                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
-                                <input type="number" id="time-per-match" value="10" step="1" min="1">
-                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
-                            </div>
+                             <input type="number" id="time-per-match" value="10" step="1" min="1">
                         </div>
                         <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
@@ -141,7 +129,7 @@
                         <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
                         <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
                     </div>
-                    <button id="generate-schedule-btn" class="btn btn-secondary">สร้าง / อัปเดตตารางแข่งขัน</button>
+                    <button id="generate-schedule-btn" class="btn btn-secondary">สร้างตารางแข่งขัน</button>
                 </div>
                 <div id="setup-login-prompt"></div>
             </div>
@@ -256,75 +244,86 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE PROVEN CIRCLE METHOD ALGORITHM ***
-        function generateGuaranteedFairSchedule(teams, totalMatches, opener) {
-            
-            let schedule = [];
-            let teamList = [...teams];
-            const BYE = "BYE_TEAM"; // Use a unique identifier for the bye
-
-            // Add a bye if the number of teams is odd
-            if (teamList.length % 2 !== 0) {
-                teamList.push(BYE);
-            }
-            const numTeams = teamList.length;
-
-            // Generate Leg 1
-            let leg1Rounds = []; // Store matches round by round
-            for (let round = 0; round < numTeams - 1; round++) {
-                let roundMatches = [];
-                for (let i = 0; i < numTeams / 2; i++) {
-                    const home = teamList[i];
-                    const away = teamList[numTeams - 1 - i];
-                    
-                    if (home !== BYE && away !== BYE) {
-                         // To ensure home/away balance, the fixed team (teamList[0]) alternates
-                         if(i === 0 && round % 2 === 1) {
-                            roundMatches.push({ home: away, away: home });
-                         } else {
-                            roundMatches.push({ home: home, away: away });
-                         }
-                    }
-                }
-                leg1Rounds.push(roundMatches);
-                
-                // Rotate the array, keeping the first element fixed
-                teamList.splice(1, 0, teamList.pop());
-            }
-            
-            // Generate Leg 2 by swapping home and away from the structured Leg 1 rounds
-            const leg2Rounds = leg1Rounds.map(round => {
-                return round.map(match => ({ home: match.away, away: match.home }));
+        // *** THE MASTER TEMPLATE ALGORITHM ***
+        const MASTER_TEMPLATES = {
+            '5_teams': [
+                // Template 1
+                [ {home:"green",away:"red"}, {home:"navy",away:"blue"}, {home:"black",away:"green"}, {home:"red",away:"navy"}, {home:"blue",away:"black"}, {home:"green",away:"navy"}, {home:"red",away:"black"}, {home:"navy",away:"black"}, {home:"green",away:"blue"}, {home:"red",away:"black"}, {home:"navy",away:"blue"}, {home:"green",away:"red"}, {home:"black",away:"navy"}, {home:"blue",away:"green"}, {home:"red",away:"black"}, {home:"navy",away:"green"}, {home:"blue",away:"red"}, {home:"green",away:"black"}, {home:"navy",away:"red"}, {home:"blue",away:"black"} ],
+                // Template 2
+                [ {home:"black",away:"green"}, {home:"red",away:"navy"}, {home:"blue",away:"black"}, {home:"green",away:"red"}, {home:"navy",away:"blue"}, {home:"black",away:"red"}, {home:"green",away:"navy"}, {home:"red",away:"blue"}, {home:"black",away:"navy"}, {home:"green",away:"blue"}, {home:"red",away:"navy"}, {home:"black",away:"green"}, {home:"blue",away:"red"}, {home:"navy",away:"black"}, {home:"green",away:"red"}, {home:"red",away:"black"}, {home:"navy",away:"green"}, {home:"black",away:"blue"}, {home:"red",away:"green"}, {home:"navy",away:"blue"} ],
+                // Template 3
+                [ {home:"blue",away:"black"}, {home:"green",away:"red"}, {home:"navy",away:"blue"}, {home:"black",away:"green"}, {home:"red",away:"navy"}, {home:"blue",away:"green"}, {home:"black",away:"red"}, {home:"green",away:"navy"}, {home:"blue",away:"red"}, {home:"black",away:"navy"}, {home:"green",away:"red"}, {home:"blue",away:"black"}, {home:"navy",away:"green"}, {home:"red",away:"blue"}, {home:"black",away:"navy"}, {home:"green",away:"blue"}, {home:"red",away:"black"}, {home:"blue",away:"navy"}, {home:"green",away:"black"}, {home:"red",away:"navy"} ],
+                // Template 4
+                [ {home:"navy",away:"blue"}, {home:"black",away:"green"}, {home:"red",away:"navy"}, {home:"blue",away:"black"}, {home:"green",away:"red"}, {home:"navy",away:"black"}, {home:"blue",away:"green"}, {home:"black",away:"red"}, {home:"navy",away:"green"}, {home:"blue",away:"red"}, {home:"black",away:"green"}, {home:"navy",away:"blue"}, {home:"red",away:"black"}, {home:"green",away:"navy"}, {home:"blue",away:"red"}, {home:"black",away:"navy"}, {home:"green",away:"blue"}, {home:"navy",away:"red"}, {home:"black",away:"blue"}, {home:"green",away:"red"} ],
+                // Template 5
+                [ {home:"red",away:"navy"}, {home:"blue",away:"black"}, {home:"green",away:"red"}, {home:"navy",away:"blue"}, {home:"black",away:"green"}, {home:"red",away:"blue"}, {home:"navy",away:"black"}, {home:"blue",away:"green"}, {home:"red",away:"black"}, {home:"navy",away:"green"}, {home:"blue",away:"black"}, {home:"red",away:"navy"}, {home:"green",away:"blue"}, {home:"black",away:"red"}, {home:"navy",away:"green"}, {home:"blue",away:"red"}, {home:"black",away:"navy"}, {home:"red",away:"green"}, {home:"blue",away:"navy"}, {home:"black",away:"green"} ]
+            ]
+        };
+        // Replace 'navy' with 'white' for your team set
+        Object.keys(MASTER_TEMPLATES).forEach(key => {
+            MASTER_TEMPLATES[key].forEach(template => {
+                template.forEach(match => {
+                    if (match.home === 'navy') match.home = 'white';
+                    if (match.away === 'navy') match.away = 'white';
+                });
             });
-            
-            let allRounds = [...leg1Rounds, ...leg2Rounds];
+        });
 
-            // Handle opener: move the entire round containing the opener to the front
-            if (opener && opener.home && opener.away) {
-                let openerRoundIndex = -1;
-                let openerRound = null;
 
-                for(let i = 0; i < allRounds.length; i++) {
-                    if (allRounds[i].some(m => m.home === opener.home && m.away === opener.away)) {
-                        openerRoundIndex = i;
-                        break;
+        function generateScheduleFromTemplate(teams, totalMatches, opener) {
+            // This function is now the main generator
+            let baseSchedule = [];
+
+            // If 5 or more teams, use the master template
+            if (teams.length >= 5) {
+                const templates = MASTER_TEMPLATES['5_teams'];
+                // Randomly pick one of the master templates
+                baseSchedule = templates[Math.floor(Math.random() * templates.length)];
+            } else {
+                // For less than 5 teams, use the Circle Method which is perfect for smaller numbers
+                let teamList = [...teams];
+                const BYE = "BYE_TEAM";
+                if (teamList.length % 2 !== 0) { teamList.push(BYE); }
+                const numTeams = teamList.length;
+
+                let leg1Rounds = [];
+                for (let round = 0; round < numTeams - 1; round++) {
+                    let roundMatches = [];
+                    for (let i = 0; i < numTeams / 2; i++) {
+                        const home = teamList[i];
+                        const away = teamList[numTeams - 1 - i];
+                        if (home !== BYE && away !== BYE) {
+                             if(i === 0 && round % 2 === 1) { roundMatches.push({ home: away, away: home }); } 
+                             else { roundMatches.push({ home: home, away: away }); }
+                        }
                     }
+                    leg1Rounds.push(roundMatches);
+                    teamList.splice(1, 0, teamList.pop());
                 }
+                const leg1 = leg1Rounds.flat();
+                const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
+                baseSchedule = [...leg1, ...leg2];
+            }
 
-                if (openerRoundIndex > 0) { // If it exists and isn't already the first round
-                    [openerRound] = allRounds.splice(openerRoundIndex, 1);
-                    allRounds.unshift(openerRound);
+            // Filter the schedule to only include matches with the selected teams
+            let filteredSchedule = baseSchedule.filter(match => 
+                teams.includes(match.home) && teams.includes(match.away)
+            );
+            
+            // Handle opener: move it to the front
+            if (opener && opener.home && opener.away) {
+                const openerIndex = filteredSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
+                if (openerIndex > 0) { 
+                    const [openerMatch] = filteredSchedule.splice(openerIndex, 1);
+                    filteredSchedule.unshift(openerMatch);
                 }
             }
-            
-            // Flatten the final, correctly ordered rounds into the schedule
-            schedule = allRounds.flat();
 
-            return schedule
+            return filteredSchedule
                 .slice(0, totalMatches)
                 .map(match => ({...match, homeScore: null, awayScore: null}));
         }
-        
+
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
@@ -426,7 +425,6 @@
             });
             document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); });
             document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
-            document.querySelectorAll('#setup-content-wrapper .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
             isInitialSetupDone = true;
         }
 
@@ -441,7 +439,6 @@
             if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
             
             const settings = { 
-                totalHours: parseFloat(document.getElementById('total-hours').value), 
                 timePerMatch: parseInt(document.getElementById('time-per-match').value), 
                 startTime: document.getElementById('start-time').value, 
                 activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), 
@@ -452,13 +449,11 @@
             if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
             
-            const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
-            if (totalMatches < 1) return alert('เวลารวมน้อยเกินไปสำหรับอย่างน้อยหนึ่งแมตช์');
-
             let schedule;
             try {
-                console.log("Using THE PROVEN CIRCLE METHOD ALGORITHM...");
-                schedule = generateGuaranteedFairSchedule(settings.activeTeams, totalMatches, settings.opener);
+                console.log("Using THE MASTER TEMPLATE ALGORITHM...");
+                // Total matches is now determined by the filtered template, not by time.
+                schedule = generateScheduleFromTemplate(settings.activeTeams, 100, settings.opener); // Use a high number to get all possible matches
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
                 return;
@@ -510,20 +505,6 @@
             navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); });
         }
         
-        function handleNumberStepper(event) {
-            const op = parseInt(event.currentTarget.dataset.op);
-            const targetId = event.currentTarget.dataset.target;
-            const input = document.getElementById(targetId);
-            if (input) {
-                const step = parseFloat(input.step) || 1;
-                const min = parseFloat(input.min);
-                let currentValue = parseFloat(input.value) || 0;
-                let newValue = currentValue + (op * step);
-                if (!isNaN(min) && newValue < min) newValue = min;
-                input.value = parseFloat(newValue.toPrecision(12));
-            }
-        }
-
         async function loadDataForDate(date) {
             currentDateKey = date;
             if(document.getElementById('match-date')) document.getElementById('match-date').value = date;
@@ -540,17 +521,18 @@
 
         function loadSettingsFromData(settings) {
             if (!settings || !currentUser) return;
-            document.getElementById('total-hours').value = settings.totalHours || 2;
             document.getElementById('time-per-match').value = settings.timePerMatch || 10;
             document.getElementById('start-time').value = settings.startTime || '20:00';
-            document.querySelectorAll('.team-switch').forEach(sw => { sw.checked = settings.activeTeams.includes(sw.dataset.teamSlug); });
+            document.querySelectorAll('.team-switch').forEach(sw => { 
+                const teamSlug = sw.dataset.teamSlug;
+                sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true;
+            });
             document.getElementById('opener-home').value = settings.opener?.home || '';
             document.getElementById('opener-away').value = settings.opener?.away || '';
         }
         
         function resetSettingsForm() {
             if (!currentUser) return;
-            document.getElementById('total-hours').value = 2;
             document.getElementById('time-per-match').value = 10;
             document.getElementById('start-time').value = '20:00';
             document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
