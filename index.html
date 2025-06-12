@@ -256,42 +256,95 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** NEW: Final Scheduling Algorithm using Circle Method ***
-        function generateCircleMethodSchedule(teams, totalMatches) {
-            let localTeams = [...teams];
-            // If odd number of teams, add a "BYE" team
-            if (localTeams.length % 2 !== 0) {
-                localTeams.push("BYE");
-            }
-            const numTeams = localTeams.length;
-            const rounds = numTeams - 1;
-            const matchesPerRound = numTeams / 2;
+        // *** NEW: Final, Corrected, and Robust Scheduling Algorithm ***
+        function generateFinalFairSchedule(activeTeams, totalMatches, opener) {
+            let schedule = [];
+            let teamStats = {};
+            activeTeams.forEach(slug => {
+                teamStats[slug] = { p: 0, consecutiveRest: 0 };
+            });
 
-            let allMatches = [];
-            // Generate all rounds for a single Round Robin
-            for (let round = 0; round < rounds; round++) {
-                for (let match = 0; match < matchesPerRound; match++) {
-                    const home = localTeams[match];
-                    const away = localTeams[numTeams - 1 - match];
-                    if (home !== "BYE" && away !== "BYE") {
-                        allMatches.push({ home, away, homeScore: null, awayScore: null });
+            // Handle opener first if it exists
+            if (opener && opener.home && opener.away) {
+                schedule.push({ home: opener.home, away: opener.away, homeScore: null, awayScore: null });
+                teamStats[opener.home].p++;
+                teamStats[opener.away].p++;
+                activeTeams.forEach(slug => {
+                    if (slug !== opener.home && slug !== opener.away) {
+                        teamStats[slug].consecutiveRest++;
+                    }
+                });
+            }
+
+            // Create a complete home-and-away matchup pool
+            const createFullPool = () => {
+                const pool = [];
+                for (let i = 0; i < activeTeams.length; i++) {
+                    for (let j = i + 1; j < activeTeams.length; j++) {
+                        pool.push([activeTeams[i], activeTeams[j]]);
+                        pool.push([activeTeams[j], activeTeams[i]]); // Add the reverse fixture
                     }
                 }
-                // Rotate teams, keeping the first one fixed
-                localTeams.splice(1, 0, localTeams.pop());
-            }
+                // If opener exists, remove it and its reverse from the pool to avoid duplication
+                if (opener && opener.home && opener.away) {
+                    return pool.filter(match => 
+                        !(match.includes(opener.home) && match.includes(opener.away))
+                    ).sort(() => Math.random() - 0.5);
+                }
+                return pool.sort(() => Math.random() - 0.5);
+            };
 
-            // Create a second leg by swapping home and away
-            const secondLeg = allMatches.map(match => ({ home: match.away, away: match.home, homeScore: null, awayScore: null }));
-            const fullDoubleRR = [...allMatches, ...secondLeg];
+            let matchupPool = createFullPool();
+            const startMatchIndex = schedule.length;
 
-            // If the requested matches are more than a full Double RR, cycle through it
-            let finalSchedule = [];
-            for (let i = 0; i < totalMatches; i++) {
-                finalSchedule.push(fullDoubleRR[i % fullDoubleRR.length]);
+            for (let i = startMatchIndex; i < totalMatches; i++) {
+                // If pool runs out (for schedules longer than a double round robin), refresh it
+                if (matchupPool.length === 0) {
+                    matchupPool = createFullPool();
+                }
+
+                const lastPlayedTeams = (schedule.length > 0) ? [schedule[schedule.length - 1].home, schedule[schedule.length - 1].away] : [];
+                const mustPlayTeams = activeTeams.filter(slug => teamStats[slug].consecutiveRest >= 2);
+
+                let bestChoice = null;
+
+                // Sort candidates by a calculated score
+                const candidates = matchupPool
+                    .map((match, index) => ({ match, index }))
+                    .filter(c => !lastPlayedTeams.includes(c.match[0]) && !lastPlayedTeams.includes(c.match[1]))
+                    .map(c => {
+                        let score = 0;
+                        // High priority for teams that must play
+                        if (mustPlayTeams.includes(c.match[0])) score += 100;
+                        if (mustPlayTeams.includes(c.match[1])) score += 100;
+                        // Lower priority for teams that have played more (keeps total play count even)
+                        score -= (teamStats[c.match[0]].p + teamStats[c.match[1]].p);
+                        return { ...c, score };
+                    })
+                    .sort((a, b) => b.score - a.score); // Sort descending by score
+
+                if (candidates.length > 0) {
+                    bestChoice = candidates[0];
+                }
+
+                if (!bestChoice) {
+                    throw new Error(`ไม่สามารถหาคู่ที่เหมาะสมได้ในแมตช์ที่ ${i + 1} กรุณาตรวจสอบจำนวนทีมและเงื่อนไข`);
+                }
+
+                const [home, away] = bestChoice.match;
+                schedule.push({ home, away, homeScore: null, awayScore: null });
+                matchupPool.splice(bestChoice.index, 1);
+
+                activeTeams.forEach(slug => {
+                    if (slug === home || slug === away) {
+                        teamStats[slug].p++;
+                        teamStats[slug].consecutiveRest = 0;
+                    } else {
+                        teamStats[slug].consecutiveRest++;
+                    }
+                });
             }
-            
-            return finalSchedule;
+            return schedule;
         }
 
 
@@ -427,7 +480,7 @@
             };
             const date = document.getElementById('match-date').value;
             if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
-            if (settings.activeTeams.length < 2) return alert('ต้องมีอย่างน้อย 2 ทีม');
+            if (settings.activeTeams.length < 3) return alert('อัลกอริทึมต้องการอย่างน้อย 3 ทีมเพื่อให้ทำงานได้ถูกต้อง');
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
             
             const totalMatches = Math.floor((settings.totalHours * 60) / settings.timePerMatch);
@@ -436,17 +489,7 @@
             let schedule;
 
             try {
-                // *** USE THE NEW, ROBUST CIRCLE METHOD ALGORITHM ***
-                console.log("Using Circle Method scheduling algorithm.");
-                let baseSchedule = generateCircleMethodSchedule(settings.activeTeams, totalMatches);
-                
-                // If there's an opener, inject it at the beginning and remove one match from the end
-                if (settings.opener.home && settings.opener.away) {
-                    const openerMatch = { home: settings.opener.home, away: settings.opener.away, homeScore: null, awayScore: null };
-                    schedule = [openerMatch, ...baseSchedule.slice(0, totalMatches - 1)];
-                } else {
-                    schedule = baseSchedule;
-                }
+                schedule = generateFinalFairSchedule(settings.activeTeams, totalMatches, settings.opener);
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
                 return;
