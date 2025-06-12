@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 1. เพิ่มไลบรารี่ html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -32,40 +31,11 @@
         .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         h1, h2 { text-align: center; margin-bottom: 25px; color: var(--secondary-color); display: flex; align-items: center; justify-content: center; gap: 10px; }
-        /* NEW: ปรับ H1 ให้รองรับปุ่ม Export */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        .page-header h1 {
-             margin-bottom: 0; /* เอา margin เดิมออก */
-             flex-grow: 1;
-        }
-        /* NEW: สไตล์ปุ่ม Export */
-        .export-btn {
-            background-color: var(--primary-variant);
-            color: var(--text-color);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Kanit', sans-serif;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background-color 0.2s;
-        }
-        .export-btn:hover {
-            background-color: #4a00e0;
-        }
-        .export-btn:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
-
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .page-header h1 { margin-bottom: 0; flex-grow: 1; }
+        .export-btn { background-color: var(--primary-variant); color: var(--text-color); border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-family: 'Kanit', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background-color 0.2s; }
+        .export-btn:hover { background-color: #4a00e0; }
+        .export-btn:disabled { background-color: #555; cursor: not-allowed; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-around; background-color: var(--surface-color); border-top: 1px solid var(--border-color); box-shadow: 0 -5px 15px var(--shadow-color); z-index: 1000; }
         .nav-btn { flex-grow: 1; padding: 10px 5px; background: none; border: none; color: var(--text-muted); font-family: 'Kanit', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .nav-btn .icon { font-size: 24px; }
@@ -116,19 +86,32 @@
         .match-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 5px; }
         .score-control { display: flex; align-items: center; gap: 8px; }
         .score-btn { width: 40px; height: 40px; border-radius: 8px; border: none; font-size: 24px; font-weight: 700; cursor: pointer; background-color: #333; color: var(--text-color); transition: background-color 0.2s; }
-        .score-btn:hover { background-color: #444; }
+        .score-btn:hover:not(:disabled) { background-color: #444; }
         .score-input { width: 60px; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
-        .reset-score-btn { width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; background-color: var(--team-orange); color: white; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
-        .reset-score-btn:hover { transform: scale(1.1); }
+        /* NEW: Styles for disabled/readonly score controls */
+        .score-input:read-only { background-color: #2a2a2a; cursor: default; }
+        .score-btn:disabled, .reset-score-btn:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; }
+        .reset-score-btn { width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; background-color: var(--team-orange); color: white; display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); }
         .vs { margin: 0; font-size: 20px; color: var(--text-muted); font-weight: 700; }
+        #auth-section { padding: 10px 15px; text-align: right; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); }
+        #auth-section button { padding: 5px 10px; font-size: 14px; width: auto; vertical-align: middle;}
+        #user-info { margin-right: 15px; vertical-align: middle; color: var(--text-muted); }
     </style>
 </head>
 <body>
 
     <div id="app">
+        <div id="auth-section">
+            <span id="user-info"></span>
+            <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
+            <button id="logout-btn" class="btn-danger">ออกจากระบบ</button>
+        </div>
+
         <main id="content">
             <div id="page-setup" class="page">
-                <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
+                <!-- Content for setup page remains the same -->
+                 <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
                 <div class="card">
                     <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
                     <div class="form-group">
@@ -161,6 +144,7 @@
             </div>
             
             <div id="page-schedule" class="page">
+                 <!-- Content for schedule page remains the same -->
                 <div class="page-header">
                     <h1>📅 ตารางการแข่งขัน</h1>
                     <button id="export-schedule-btn" class="export-btn">📸 Export</button>
@@ -172,8 +156,9 @@
             </div>
 
             <div id="page-scores" class="page">
+                 <!-- Content for scores page remains the same -->
                 <div class="page-header">
-                    <h1>📝 บันทึกผลการแข่งขัน</h1>
+                    <h1>📝 ผลการแข่งขัน</h1>
                     <button id="export-scores-btn" class="export-btn">📸 Export</button>
                 </div>
                  <div class="date-selector-container"><select id="scores-date-selector"></select></div>
@@ -181,6 +166,7 @@
             </div>
 
             <div id="page-leaderboard" class="page">
+                 <!-- Content for leaderboard page remains the same -->
                  <div class="page-header">
                     <h1>📊 ตารางคะแนน</h1>
                     <button id="export-leaderboard-btn" class="export-btn">📸 Export</button>
@@ -196,8 +182,25 @@
             <button class="nav-btn" data-page="page-leaderboard"><span class="icon">🏆</span>ตารางคะแนน</button>
         </nav>
     </div>
+    
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal-btn" id="close-login-modal">×</span>
+            <h2>🔐 เข้าสู่ระบบผู้ดูแล</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">อีเมล</label>
+                    <input type="email" id="login-email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">รหัสผ่าน</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
+            </form>
+        </div>
+    </div>
 
-    <!-- Modal for Editing Match -->
     <div id="edit-match-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn">×</span>
@@ -218,8 +221,8 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        const SUPABASE_URL = 'https://tudwtpbojqvnoueyrvxr.supabase.co'; // <-- ตรวจสอบว่าถูกต้อง
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY'; // <-- ตรวจสอบว่าถูกต้อง
+        const SUPABASE_URL = 'https://tudwtpbojqvnoueyrvxr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -229,15 +232,48 @@
         ];
         
         let appData = {};
-        let activePage = 'page-setup';
+        let activePage = 'page-schedule';
         let currentDateKey = new Date().toISOString().split('T')[0];
         let currentEditingMatchIndex = null;
+        let currentUser = null;
 
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
         const content = document.getElementById('content');
         
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const loginModal = document.getElementById('login-modal');
+        const closeLoginModalBtn = document.getElementById('close-login-modal');
+        const loginForm = document.getElementById('login-form');
+
         async function init() {
+            loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
+            logoutBtn.addEventListener('click', handleLogout);
+            closeLoginModalBtn.addEventListener('click', () => loginModal.style.display = 'none');
+            loginForm.addEventListener('submit', handleLogin);
+            window.addEventListener('click', (event) => {
+                if (event.target == loginModal) loginModal.style.display = "none";
+            });
+
+            db.auth.onAuthStateChange(async (event, session) => {
+                currentUser = session ? session.user : null;
+                toggleAdminView(!!currentUser);
+                if (currentUser) {
+                    userInfo.textContent = `👤 ${currentUser.email}`;
+                    loginModal.style.display = 'none';
+                }
+                
+                if (event === 'INITIAL_SESSION') {
+                     await loadInitialData();
+                } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                    await loadDataForDate(currentDateKey);
+                }
+            });
+        }
+        
+        async function loadInitialData() {
             setupNavigation();
             setupPageSetup();
             
@@ -250,7 +286,6 @@
             });
             document.querySelectorAll('.num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
 
-            // 3. ผูก Event Listener ให้กับปุ่ม Export ใหม่
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
@@ -258,28 +293,166 @@
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || currentDateKey;
             await loadDataForDate(initialDate);
-            setActivePage('page-setup');
+            setActivePage(currentUser ? 'page-setup' : 'page-schedule');
             listenToRealtimeChanges();
         }
+
+        function toggleAdminView(isLoggedIn) {
+            loginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
+            logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
+            userInfo.style.display = isLoggedIn ? 'inline-block' : 'none';
+
+            // CHANGED: Only hide the setup page nav button
+            document.querySelector('.nav-btn[data-page="page-setup"]').style.display = isLoggedIn ? 'flex' : 'none';
+            
+            document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
+
+            // CHANGED: If logged out, only redirect from setup page
+            if (!isLoggedIn && activePage === 'page-setup') {
+                setActivePage('page-schedule');
+            }
+            
+            // Re-render the current page to apply new permissions (e.g. enable/disable buttons)
+            renderAllPagesForDate(currentDateKey);
+        }
         
-        // 2. เพิ่มฟังก์ชันสำหรับ Export PNG
-        function exportElementAsPNG(elementId, filename, buttonElement) {
-            const element = document.getElementById(elementId);
-            if (!element) {
-                console.error('Element not found:', elementId);
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const { error } = await db.auth.signInWithPassword({ email, password });
+            if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
+        }
+
+        async function handleLogout() {
+            const { error } = await db.auth.signOut();
+            if (error) alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
+        }
+
+        function setActivePage(pageId) {
+            // CHANGED: Only prevent access to the setup page
+            if (!currentUser && pageId === 'page-setup') {
+                alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้');
+                loginModal.style.display = 'block';
                 return;
             }
+            activePage = pageId;
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
+            content.scrollTop = 0;
+            renderAllPagesForDate(currentDateKey);
+        }
+        
+        function renderSchedulePage(date) {
+            const container = document.getElementById('schedule-container');
+            const dayData = appData[date];
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
+            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
+            container.innerHTML = schedule.map((match, index) => { 
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); 
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
+                const homeTeam = TEAMS.find(t => t.slug === match.home); 
+                const awayTeam = TEAMS.find(t => t.slug === match.away); 
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black'; 
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+                const editButtonHtml = currentUser ? `<button class="edit-match-btn" data-index="${index}">✏️ แก้ไข</button>` : '';
+                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${editButtonHtml}</div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><span class="vs">VS</span><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div></div>`; 
+            }).join('');
+            if(currentUser) container.querySelectorAll('.edit-match-btn').forEach(btn => { btn.addEventListener('click', (e) => { const matchIndex = e.currentTarget.dataset.index; openEditMatchModal(matchIndex); }); });
+        }
 
-            // แสดงสถานะกำลังทำงาน
+        // --- MAJOR CHANGE IN THIS FUNCTION ---
+        function renderScoresPage(date) {
+            const container = document.getElementById('scores-container');
+            document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน';
+
+            const dayData = appData[date];
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { 
+                container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); 
+                return; 
+            }
+
+            const { schedule, settings } = dayData; 
+            const startTime = new Date(`${date}T${settings.startTime}`);
+            const isReadOnly = !currentUser; // Determine if controls should be read-only
+
+            container.innerHTML = schedule.map((match, index) => {
+                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
+                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
+                const homeTeam = TEAMS.find(t => t.slug === match.home); 
+                const awayTeam = TEAMS.find(t => t.slug === match.away);
+                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; 
+                const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
+                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; 
+                const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
+
+                // NEW: Add readonly/disabled attributes based on login status
+                const readonlyAttr = isReadOnly ? 'readonly' : '';
+                const disabledAttr = isReadOnly ? 'disabled' : '';
+
+                return `<div class="card match-card">
+                    <div class="match-header">
+                        <span>แมตช์ที่ ${index + 1}</span>
+                        <span>⏱️ ${timeStr}</span>
+                    </div>
+                    <div class="match-body">
+                        <div class="team-score-wrapper">
+                            <div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div>
+                            <div class="score-control">
+                                <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button>
+                                <input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}>
+                                <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button>
+                            </div>
+                        </div>
+                        <div class="match-center-controls">
+                            <span class="vs">VS</span>
+                            <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button>
+                        </div>
+                        <div class="team-score-wrapper">
+                            <div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div>
+                            <div class="score-control">
+                                <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button>
+                                <input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}>
+                                <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // NEW: Only add listeners if the user is an admin
+            if (currentUser) {
+                container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
+                container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
+                container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore));
+            }
+        }
+        
+        async function updateScore(index, team, value) {
+            // Permission check is crucial here
+            if (!currentUser) return;
+            const date = currentDateKey; let dayData = appData[date]; if (!dayData) return;
+            const newSchedule = [...dayData.schedule]; const match = newSchedule[index];
+            if (team === 'home') match.homeScore = value; else match.awayScore = value;
+            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
+            if (error) alert('เกิดข้อผิดพลาดในการอัปเดตคะแนน: ' + error.message);
+        }
+
+        // Functions below this line are mostly unchanged but are included for completeness
+        // ... (The rest of the JS code remains the same as the previous version) ...
+
+        function exportElementAsPNG(elementId, filename, buttonElement) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
             const originalText = buttonElement.innerHTML;
             buttonElement.innerHTML = '⌛ กำลังสร้าง...';
             buttonElement.disabled = true;
 
-            html2canvas(element, {
-                backgroundColor: '#121212', // สีพื้นหลังของ body
-                useCORS: true,
-                scale: 2 // เพิ่มความละเอียดของภาพเป็น 2 เท่า
-            }).then(canvas => {
+            html2canvas(element, { backgroundColor: '#121212', useCORS: true, scale: 2 })
+            .then(canvas => {
                 const link = document.createElement('a');
                 link.download = filename;
                 link.href = canvas.toDataURL('image/png');
@@ -288,13 +461,11 @@
                 console.error('oops, something went wrong!', err);
                 alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ');
             }).finally(() => {
-                // คืนค่าปุ่มให้เป็นปกติ
                 buttonElement.innerHTML = originalText;
                 buttonElement.disabled = false;
             });
         }
 
-        // --- ส่วนที่เหลือของโค้ดเหมือนเดิม ---
         function listenToRealtimeChanges() {
             db.channel('match_days_changes')
               .on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => {
@@ -313,13 +484,6 @@
                 button.addEventListener('click', () => setActivePage(button.dataset.page));
             });
         }
-        function setActivePage(pageId) {
-            activePage = pageId;
-            pages.forEach(page => page.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
-            content.scrollTop = 0;
-        }
         
         function handleNumberStepper(event) {
             const op = parseInt(event.currentTarget.dataset.op);
@@ -337,15 +501,15 @@
 
         async function loadDataForDate(date) {
             currentDateKey = date;
-            document.getElementById('match-date').value = date;
+            if(document.getElementById('match-date')) document.getElementById('match-date').value = date;
             const { data, error } = await db.from('match_days').select('*').eq('match_date', date).single();
-            if (data) { appData[date] = data; loadSettingsFromData(data.settings); } 
-            else { appData[date] = null; resetSettingsForm(); }
+            if (data) { appData[date] = data; if(currentUser) loadSettingsFromData(data.settings); } 
+            else { appData[date] = null; if(currentUser) resetSettingsForm(); }
             renderAllPagesForDate(date);
         }
 
         function loadSettingsFromData(settings) {
-            if (!settings) return resetSettingsForm();
+            if (!settings || !currentUser) return resetSettingsForm();
             document.getElementById('total-hours').value = settings.totalHours || 2;
             document.getElementById('time-per-match').value = settings.timePerMatch || 10;
             document.getElementById('start-time').value = settings.startTime || '20:00';
@@ -355,6 +519,7 @@
         }
         
         function resetSettingsForm() {
+            if (!currentUser) return;
             document.getElementById('total-hours').value = 2;
             document.getElementById('time-per-match').value = 10;
             document.getElementById('start-time').value = '20:00';
@@ -364,6 +529,14 @@
         }
 
         function setupPageSetup() {
+            if (!currentUser) {
+                document.getElementById('page-setup').innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐');
+                return;
+            }
+            if(!document.getElementById('team-toggle-container')){
+                return; 
+            }
+
             const container = document.getElementById('team-toggle-container');
             const openerHomeSelect = document.getElementById('opener-home');
             const openerAwaySelect = document.getElementById('opener-away');
@@ -382,6 +555,8 @@
         }
 
         async function generateAndSaveSchedule() {
+            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
+            
             const date = document.getElementById('match-date').value;
             if (!date) return alert('กรุณาเลือกวันที่แข่งขัน');
             const settings = { totalHours: parseFloat(document.getElementById('total-hours').value), timePerMatch: parseInt(document.getElementById('time-per-match').value), startTime: document.getElementById('start-time').value, activeTeams: Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug), opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value } };
@@ -405,6 +580,7 @@
         }
         
         async function deleteDay() {
+            if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
             const dateToDelete = document.getElementById('schedule-date-selector').value;
             if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) {
                 const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete);
@@ -428,6 +604,7 @@
                 selector.innerHTML = '';
                 if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); }
                 if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; }
+                else if (dates.length > 0) { selector.value = dates[0]; }
             });
             selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; });
             document.getElementById('delete-day-btn').onclick = deleteDay;
@@ -435,35 +612,6 @@
 
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         
-        function renderSchedulePage(date) {
-            const container = document.getElementById('schedule-container');
-            const dayData = appData[date];
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
-            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
-            container.innerHTML = schedule.map((match, index) => { const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); const homeTeam = TEAMS.find(t => t.slug === match.home); const awayTeam = TEAMS.find(t => t.slug === match.away); const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; const homeTeamSlug = homeTeam ? homeTeam.slug : 'black'; const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
-                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span><button class="edit-match-btn" data-index="${index}">✏️ แก้ไข</button></div><div class="match-body"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><span class="vs">VS</span><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div></div></div>`; 
-            }).join('');
-            container.querySelectorAll('.edit-match-btn').forEach(btn => { btn.addEventListener('click', (e) => { const matchIndex = e.currentTarget.dataset.index; openEditMatchModal(matchIndex); }); });
-        }
-
-        function renderScoresPage(date) {
-            const container = document.getElementById('scores-container');
-            const dayData = appData[date];
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('สร้างตารางแข่งขันก่อนจึงจะบันทึกผลได้', '✏️'); return; }
-            const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`);
-            container.innerHTML = schedule.map((match, index) => {
-                const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
-                const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
-                const homeTeam = TEAMS.find(t => t.slug === match.home); const awayTeam = TEAMS.find(t => t.slug === match.away);
-                const homeTeamName = homeTeam ? homeTeam.name : 'N/A'; const homeTeamSlug = homeTeam ? homeTeam.slug : 'black';
-                const awayTeamName = awayTeam ? awayTeam.name : 'N/A'; const awayTeamSlug = awayTeam ? awayTeam.slug : 'black';
-                return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-score-wrapper"><div class="team-emblem ${homeTeamSlug}">${homeTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1">-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home"><button class="score-btn" data-index="${index}" data-team="home" data-op="1">+</button></div></div><div class="match-center-controls"><span class="vs">VS</span><button class="reset-score-btn" data-index="${index}">🔁</button></div><div class="team-score-wrapper"><div class="team-emblem ${awayTeamSlug}">${awayTeamName}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1">-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away"><button class="score-btn" data-index="${index}" data-team="away" data-op="1">+</button></div></div></div></div>`;
-            }).join('');
-            container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton));
-            container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput));
-            container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore));
-        }
-
         function renderLeaderboardPage(date) {
             const container = document.getElementById('leaderboard-container');
             const dayData = appData[date];
@@ -473,14 +621,7 @@
             const medals = ['🥇', '🥈', '🥉'];
             container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`;
         }
-
-        async function updateScore(index, team, value) {
-            const date = currentDateKey; let dayData = appData[date]; if (!dayData) return;
-            const newSchedule = [...dayData.schedule]; const match = newSchedule[index];
-            if (team === 'home') match.homeScore = value; else match.awayScore = value;
-            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
-            if (error) alert('เกิดข้อผิดพลาดในการอัปเดตคะแนน: ' + error.message);
-        }
+        
         function updateScoreFromButton(event) {
             const { index, team, op } = event.currentTarget.dataset;
             const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
@@ -496,10 +637,11 @@
         function resetScore(event) { const { index } = event.currentTarget.dataset; updateScore(index, 'home', null); updateScore(index, 'away', null); }
 
         function calculateLeaderboard(date) {
-            const dayData = appData[date]; const stats = {};
-            dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; });
+            const dayData = appData[date]; if (!dayData) return {};
+            const stats = {};
+            dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); if(teamInfo) { stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; }});
             dayData.schedule.forEach(match => {
-                const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null) return;
+                const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return;
                 stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore;
                 if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; }
             });
@@ -507,6 +649,7 @@
         }
 
         function openEditMatchModal(index) {
+            if (!currentUser) return;
             currentEditingMatchIndex = parseInt(index); const date = currentDateKey; const dayData = appData[date]; if (!dayData) return;
             const match = dayData.schedule[currentEditingMatchIndex]; const activeTeams = dayData.settings.activeTeams;
             const homeSelect = document.getElementById('modal-home-team'); const awaySelect = document.getElementById('modal-away-team');
@@ -517,7 +660,7 @@
         }
         function closeEditMatchModal() { document.getElementById('edit-match-modal').style.display = 'none'; currentEditingMatchIndex = null; }
         async function saveMatchChanges() {
-            if (currentEditingMatchIndex === null) return;
+            if (currentEditingMatchIndex === null || !currentUser) return;
             const date = currentDateKey; const dayData = appData[date];
             const newHomeSlug = document.getElementById('modal-home-team').value; const newAwaySlug = document.getElementById('modal-away-team').value;
             if (newHomeSlug === newAwaySlug) { alert('ทีมเหย้าและทีมเยือนต้องไม่ซ้ำกัน!'); return; }
