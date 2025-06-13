@@ -221,10 +221,11 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
+        // ** CORRECTED SETUP **
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                persistSession: true,
-                autoRefreshToken: true,
+                persistSession: false, // Don't persist session in localStorage
+                autoRefreshToken: false,
                 detectSessionInUrl: false,
             },
         });
@@ -268,10 +269,10 @@
             const teamCount = teams.length;
             let numberTemplate = [];
 
-            if (teamCount >= 5 && MASTER_TEMPLATES[`5-teams`]) {
-                numberTemplate = [...MASTER_TEMPLATES[`5-teams`]];
-            } else if (teamCount === 4 && MASTER_TEMPLATES[`4-teams`]) {
-                 numberTemplate = [...MASTER_TEMPLATES[`4-teams`]];
+            if (teamCount >= 5 && MASTER_TEMPLATES['5-teams']) {
+                numberTemplate = [...MASTER_TEMPLATES['5-teams']];
+            } else if (teamCount === 4 && MASTER_TEMPLATES['4-teams']) {
+                 numberTemplate = [...MASTER_TEMPLATES['4-teams']];
             } else {
                 console.log(`No master template for ${teamCount} teams. Using Circle Method fallback.`);
                 let teamList = [...teams];
@@ -342,6 +343,7 @@
                     loginModal.style.display = 'none';
                 }
 
+                // Only reload all data on initial load or when auth state truly changes
                 if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) {
                     await loadInitialData();
                 }
@@ -386,6 +388,8 @@
             const { error } = await db.auth.signOut();
             if (error) {
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
+            } else {
+                loginForm.reset(); // Clear the form fields after successful logout
             }
         }
 
