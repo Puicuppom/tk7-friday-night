@@ -221,10 +221,9 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // ** CORRECTED SETUP **
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                persistSession: false, // Don't persist session in localStorage
+                persistSession: false,
                 autoRefreshToken: false,
                 detectSessionInUrl: false,
             },
@@ -296,6 +295,13 @@
                 }
                 const leg1 = leg1Rounds.flat();
                 const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
+                if (leg1.length > 0 && leg2.length > 1) {
+                    const lastLeg1 = leg1[leg1.length-1];
+                    const firstLeg2 = leg2[0];
+                    if ([lastLeg1.home, lastLeg1.away].some(t => [firstLeg2.home, firstLeg2.away].includes(t))) {
+                        [leg2[0], leg2[1]] = [leg2[1], leg2[0]];
+                    }
+                }
                 return [...leg1, ...leg2].map(m => ({...m, homeScore: null}));
             }
             
@@ -343,7 +349,6 @@
                     loginModal.style.display = 'none';
                 }
 
-                // Only reload all data on initial load or when auth state truly changes
                 if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) {
                     await loadInitialData();
                 }
@@ -389,7 +394,7 @@
             if (error) {
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
             } else {
-                loginForm.reset(); // Clear the form fields after successful logout
+                loginForm.reset(); 
             }
         }
 
@@ -709,25 +714,61 @@
 
         function openEditMatchModal(index) {
             if (!currentUser) return;
-            currentEditingMatchIndex = parseInt(index); const date = currentDateKey; const dayData = appData[date]; if (!dayData) return;
-            const match = dayData.schedule[currentEditingMatchIndex]; const activeTeams = dayData.settings.activeTeams;
-            const homeSelect = document.getElementById('modal-home-team'); const awaySelect = document.getElementById('modal-away-team');
-            homeSelect.innerHTML = ''; awaySelect.innerHTML = '';
-            activeTeams.forEach(teamSlug => { const team = TEAMS.find(t => t.slug === slug); if(team) { const option = `<option value="${team.slug}">${team.name}</option>`; homeSelect.innerHTML += option; awaySelect.innerHTML += option; } });
-            homeSelect.value = match.home; awaySelect.value = match.away; document.getElementById('modal-match-info').textContent = `กำลังแก้ไขแมตช์ที่ ${currentEditingMatchIndex + 1}`;
+            currentEditingMatchIndex = parseInt(index); 
+            const date = currentDateKey; 
+            const dayData = appData[date]; 
+            if (!dayData) return;
+            const match = dayData.schedule[currentEditingMatchIndex]; 
+            const activeTeams = dayData.settings.activeTeams;
+            const homeSelect = document.getElementById('modal-home-team'); 
+            const awaySelect = document.getElementById('modal-away-team');
+            homeSelect.innerHTML = ''; 
+            awaySelect.innerHTML = '';
+            
+            activeTeams.forEach(teamSlug => { 
+                const team = TEAMS.find(t => t.slug === teamSlug); 
+                if(team) { 
+                    const option = `<option value="${team.slug}">${team.name}</option>`; 
+                    homeSelect.innerHTML += option; 
+                    awaySelect.innerHTML += option; 
+                } 
+            });
+            
+            homeSelect.value = match.home; 
+            awaySelect.value = match.away; 
+            document.getElementById('modal-match-info').textContent = `กำลังแก้ไขแมตช์ที่ ${currentEditingMatchIndex + 1}`;
             document.getElementById('edit-match-modal').style.display = 'block';
         }
-        function closeEditMatchModal() { document.getElementById('edit-match-modal').style.display = 'none'; currentEditingMatchIndex = null; }
+
+        function closeEditMatchModal() { 
+            document.getElementById('edit-match-modal').style.display = 'none'; 
+            currentEditingMatchIndex = null; 
+        }
+
         async function saveMatchChanges() {
             if (currentEditingMatchIndex === null || !currentUser) return;
-            const date = currentDateKey; const dayData = appData[date];
-            const newHomeSlug = document.getElementById('modal-home-team').value; const newAwaySlug = document.getElementById('modal-away-team').value;
-            if (newHomeSlug === newAwaySlug) { alert('ทีมเหย้าและทีมเยือนต้องไม่ซ้ำกัน!'); return; }
+            const date = currentDateKey; 
+            const dayData = appData[date];
+            const newHomeSlug = document.getElementById('modal-home-team').value; 
+            const newAwaySlug = document.getElementById('modal-away-team').value;
+            
+            if (newHomeSlug === newAwaySlug) { 
+                alert('ทีมเหย้าและทีมเยือนต้องไม่ซ้ำกัน!'); 
+                return; 
+            }
+            
             const newSchedule = [...dayData.schedule];
             newSchedule[currentEditingMatchIndex].home = newHomeSlug;
             newSchedule[currentEditingMatchIndex].away = newAwaySlug;
+            
             const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', date);
-            if (error) { alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message); } else { alert('บันทึกการเปลี่ยนแปลงเรียบร้อย!'); closeEditMatchModal(); }
+            
+            if (error) { 
+                alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message); 
+            } else { 
+                alert('บันทึกการเปลี่ยนแปลงเรียบร้อย!'); 
+                closeEditMatchModal(); 
+            }
         }
 
         init();
