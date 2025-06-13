@@ -223,7 +223,7 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                persistSession: true, 
+                persistSession: true, // Let Supabase handle session persistence
                 autoRefreshToken: true,
                 detectSessionInUrl: false,
             },
@@ -324,25 +324,6 @@
         }
         
         async function init() {
-             window.addEventListener('beforeunload', async () => {
-                if (currentUser) {
-                    await db.auth.signOut();
-                }
-            });
-
-             document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
-                    console.log("Tab is visible again, checking session...");
-                    const { data } = await db.auth.getSession();
-                    const sessionExists = !!data.session;
-                    const userStateExists = !!currentUser;
-                    if (sessionExists !== userStateExists) {
-                        console.log("Session state mismatch. Reloading page.");
-                        window.location.reload();
-                    }
-                }
-            });
-
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
             closeLoginModalBtn.addEventListener('click', () => loginModal.style.display = 'none');
@@ -405,8 +386,6 @@
             const { error } = await db.auth.signOut();
             if (error) {
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
-            } else {
-                 window.location.reload(); 
             }
         }
 
