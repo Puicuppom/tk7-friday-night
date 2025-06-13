@@ -324,11 +324,9 @@
         }
         
         async function init() {
-             window.addEventListener('beforeunload', () => {
+             window.addEventListener('beforeunload', async () => {
                 if (currentUser) {
-                    // This is a best-effort attempt, might not always complete.
-                    // Main security relies on server-side session expiration.
-                    navigator.sendBeacon(SUPABASE_URL + '/auth/v1/logout', JSON.stringify({ access_token: db.auth.getSession()?.data.session?.access_token }));
+                    await db.auth.signOut();
                 }
             });
 
@@ -352,15 +350,19 @@
             window.addEventListener('click', (event) => { if (event.target == loginModal) loginModal.style.display = "none"; });
 
             db.auth.onAuthStateChange(async (event, session) => {
+                const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
-                toggleAdminView(!!currentUser);
-                if (currentUser) {
+                const isLoggedIn = !!currentUser;
+                
+                toggleAdminView(isLoggedIn);
+                
+                if (isLoggedIn) {
                     userInfo.textContent = `👤 ${currentUser.email}`;
                     loginModal.style.display = 'none';
                 }
-                
-                if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-                     await loadInitialData();
+
+                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) {
+                    await loadInitialData();
                 }
             });
         }
@@ -375,7 +377,7 @@
             document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
 
             await updateDateSelectors(); 
-            const initialDate = document.getElementById('schedule-date-selector').value || currentDateKey;
+            const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
             setActivePage(currentUser ? 'page-setup' : 'page-schedule');
             listenToRealtimeChanges();
@@ -401,8 +403,11 @@
 
         async function handleLogout() {
             const { error } = await db.auth.signOut();
-            if (error) alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
-            else window.location.reload(); 
+            if (error) {
+                alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
+            } else {
+                 window.location.reload(); 
+            }
         }
 
         function setActivePage(pageId) {
