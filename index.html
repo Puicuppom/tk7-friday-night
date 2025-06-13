@@ -76,6 +76,10 @@
         #modal-match-info { margin-bottom: 15px; color: var(--text-muted); text-align: center; }
         .edit-match-btn { background-color: var(--primary-variant); color: var(--text-color); border: none; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: auto; }
         .edit-match-btn:hover { opacity: 0.8; }
+        .custom-number-input { display: flex; align-items: center; gap: 5px; }
+        .custom-number-input input { text-align: center; flex-grow: 1; }
+        .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
+        .num-stepper-btn:hover { background-color: #444; }
         .match-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
         #page-scores .match-body { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
         .team-score-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
@@ -111,7 +115,14 @@
                     <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
                     <div class="card">
                         <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
-                        <div class="form-group"><label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label><input type="number" id="time-per-match" value="10" step="1" min="1"></div>
+                        <div class="form-group">
+                            <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
+                            <div class="custom-number-input">
+                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
+                                <input type="number" id="time-per-match" value="10" step="1" min="1">
+                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
+                            </div>
+                        </div>
                         <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
                     <div class="card">
@@ -212,8 +223,10 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                persistSession: false
-            }
+                persistSession: true, 
+                autoRefreshToken: true,
+                detectSessionInUrl: false,
+            },
         });
 
         const TEAMS = [
@@ -237,7 +250,6 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE DEFINITIVE MASTER TEMPLATE ALGORITHM (with updated templates) ***
         const MASTER_TEMPLATES = {
             '5-teams': [
                 {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},
@@ -256,13 +268,11 @@
             const teamCount = teams.length;
             let numberTemplate = [];
 
-            // 1. Choose the correct template based on the number of selected teams
-            if (teamCount >= 5 && MASTER_TEMPLATES['5-teams']) {
-                numberTemplate = [...MASTER_TEMPLATES['5-teams']];
-            } else if (teamCount === 4 && MASTER_TEMPLATES['4-teams']) {
-                numberTemplate = [...MASTER_TEMPLATES['4-teams']];
+            if (teamCount >= 5 && MASTER_TEMPLATES[`5-teams`]) {
+                numberTemplate = [...MASTER_TEMPLATES[`5-teams`]];
+            } else if (teamCount === 4 && MASTER_TEMPLATES[`4-teams`]) {
+                 numberTemplate = [...MASTER_TEMPLATES[`4-teams`]];
             } else {
-                // Fallback for other numbers of teams (e.g., 3 or 6)
                 console.log(`No master template for ${teamCount} teams. Using Circle Method fallback.`);
                 let teamList = [...teams];
                 const BYE = "BYE_TEAM";
@@ -288,7 +298,6 @@
                 return [...leg1, ...leg2].map(m => ({...m, homeScore: null}));
             }
             
-            // 2. Create the dynamic mapping from the selected teams to numbers
             const teamToNumberMap = new Map();
             const numberToTeamMap = new Map();
             teams.forEach((teamSlug, index) => {
@@ -297,16 +306,11 @@
                 numberToTeamMap.set(number, teamSlug);
             });
 
-            // 3. Translate the number template into a color-slug schedule
-            let translatedSchedule = numberTemplate
-                .map(match => ({
-                    home: numberToTeamMap.get(match.home),
-                    away: numberToTeamMap.get(match.away)
-                }))
-                .filter(match => match.home && match.away);
-
+            let translatedSchedule = numberTemplate.map(match => ({
+                home: numberToTeamMap.get(match.home),
+                away: numberToTeamMap.get(match.away)
+            })).filter(match => match.home && match.away);
             
-            // 4. Handle opener: ROTATE the schedule to preserve the sequence
             if (opener && opener.home && opener.away) {
                 const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
                 if (openerIndex > 0) { 
@@ -320,6 +324,27 @@
         }
         
         async function init() {
+             window.addEventListener('beforeunload', () => {
+                if (currentUser) {
+                    // This is a best-effort attempt, might not always complete.
+                    // Main security relies on server-side session expiration.
+                    navigator.sendBeacon(SUPABASE_URL + '/auth/v1/logout', JSON.stringify({ access_token: db.auth.getSession()?.data.session?.access_token }));
+                }
+            });
+
+             document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible') {
+                    console.log("Tab is visible again, checking session...");
+                    const { data } = await db.auth.getSession();
+                    const sessionExists = !!data.session;
+                    const userStateExists = !!currentUser;
+                    if (sessionExists !== userStateExists) {
+                        console.log("Session state mismatch. Reloading page.");
+                        window.location.reload();
+                    }
+                }
+            });
+
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
             closeLoginModalBtn.addEventListener('click', () => loginModal.style.display = 'none');
@@ -334,8 +359,9 @@
                     loginModal.style.display = 'none';
                 }
                 
-                if (event === 'INITIAL_SESSION') await loadInitialData();
-                else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') await loadDataForDate(currentDateKey);
+                if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                     await loadInitialData();
+                }
             });
         }
         
@@ -416,9 +442,25 @@
                 document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); });
                 document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
                 document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects));
+                 document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
+
                 isInitialSetupDone = true;
             }
             updateOpenerSelects();
+        }
+        
+        function handleNumberStepper(event) {
+            const op = parseInt(event.currentTarget.dataset.op);
+            const targetId = event.currentTarget.dataset.target;
+            const input = document.getElementById(targetId);
+            if (input) {
+                const step = parseFloat(input.step) || 1;
+                const min = parseFloat(input.min);
+                let currentValue = parseFloat(input.value) || 0;
+                let newValue = currentValue + (op * step);
+                if (!isNaN(min) && newValue < min) newValue = min;
+                input.value = parseFloat(newValue.toPrecision(12));
+            }
         }
 
         function updateOpenerSelects() {
