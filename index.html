@@ -321,36 +321,17 @@
                 numberToTeamMap.set(number, teamSlug);
             });
 
-            let translatedSchedule = numberTemplate
-                .map(match => ({
-                    home: numberToTeamMap.get(match.home),
-                    away: numberToTeamMap.get(match.away)
-                }))
-                .filter(match => match.home && match.away);
+            let translatedSchedule = numberTemplate.map(match => ({
+                home: numberToTeamMap.get(match.home),
+                away: numberToTeamMap.get(match.away)
+            })).filter(match => match.home && match.away);
             
-            // Handle special 6-team case: slice to 24 matches
-            if (teamCount === 6) {
-                // If an opener is selected, rotate BEFORE slicing
-                if (opener && opener.home && opener.away) {
-                    const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
-                    if (openerIndex !== -1) {
-                        const rotated = [...translatedSchedule.slice(openerIndex), ...translatedSchedule.slice(0, openerIndex)];
-                        translatedSchedule = rotated.slice(0, 24);
-                    } else {
-                        translatedSchedule = translatedSchedule.slice(0, 24);
-                    }
-                } else {
-                    translatedSchedule = translatedSchedule.slice(0, 24);
-                }
-            } else {
-                // Handle opener for other cases (4, 5 teams)
-                if (opener && opener.home && opener.away) {
-                    const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
-                    if (openerIndex > 0) { 
-                        const part1 = translatedSchedule.slice(openerIndex);
-                        const part2 = translatedSchedule.slice(0, openerIndex);
-                        translatedSchedule = [...part1, ...part2];
-                    }
+            if (opener && opener.home && opener.away) {
+                const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
+                if (openerIndex > 0) { 
+                    const part1 = translatedSchedule.slice(openerIndex);
+                    const part2 = translatedSchedule.slice(0, openerIndex);
+                    translatedSchedule = [...part1, ...part2];
                 }
             }
 
@@ -531,6 +512,10 @@
             try {
                 console.log("Using THE DEFINITIVE MASTER TEMPLATE ALGORITHM...");
                 schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener);
+                 // Special case for 6 teams, slice to 24 matches as requested
+                if(settings.activeTeams.length === 6) {
+                    schedule = schedule.slice(0, 24);
+                }
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
                 return;
