@@ -250,7 +250,6 @@
         const closeLoginModalBtn = document.getElementById('close-login-modal');
         const loginForm = document.getElementById('login-form');
 
-        // *** THE DEFINITIVE MASTER TEMPLATE ALGORITHM ***
         const MASTER_TEMPLATES = {
             '6-teams': [
                 {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
@@ -303,13 +302,6 @@
                 }
                 const leg1 = leg1Rounds.flat();
                 const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
-                if (leg1.length > 0 && leg2.length > 1) {
-                    const lastLeg1 = leg1[leg1.length-1];
-                    const firstLeg2 = leg2[0];
-                    if ([lastLeg1.home, lastLeg1.away].some(t => [firstLeg2.home, firstLeg2.away].includes(t))) {
-                        [leg2[0], leg2[1]] = [leg2[1], leg2[0]];
-                    }
-                }
                 return [...leg1, ...leg2].map(m => ({...m, homeScore: null}));
             }
             
@@ -321,10 +313,12 @@
                 numberToTeamMap.set(number, teamSlug);
             });
 
-            let translatedSchedule = numberTemplate.map(match => ({
-                home: numberToTeamMap.get(match.home),
-                away: numberToTeamMap.get(match.away)
-            })).filter(match => match.home && match.away);
+            let translatedSchedule = numberTemplate
+                .map(match => ({
+                    home: numberToTeamMap.get(match.home),
+                    away: numberToTeamMap.get(match.away)
+                }))
+                .filter(match => match.home && match.away);
             
             if (opener && opener.home && opener.away) {
                 const openerIndex = translatedSchedule.findIndex(m => m.home === opener.home && m.away === opener.away);
@@ -512,10 +506,6 @@
             try {
                 console.log("Using THE DEFINITIVE MASTER TEMPLATE ALGORITHM...");
                 schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener);
-                 // Special case for 6 teams, slice to 24 matches as requested
-                if(settings.activeTeams.length === 6) {
-                    schedule = schedule.slice(0, 24);
-                }
             } catch (e) {
                 alert('เกิดข้อผิดพลาดในการสร้างตาราง: ' + e.message);
                 return;
@@ -589,7 +579,7 @@
                 const teamSlug = sw.dataset.teamSlug;
                 sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true;
             });
-            updateOpenerSelects(); // Update dropdowns based on loaded teams
+            updateOpenerSelects();
             document.getElementById('opener-home').value = settings.opener?.home || '';
             document.getElementById('opener-away').value = settings.opener?.away || '';
         }
