@@ -199,18 +199,13 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-        });
-
-        const TEAMS = [
-            { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' },
-        ];
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+        const TEAMS = [ { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' }, ];
         
         let appData = {};
         let activePage = 'page-schedule';
         let currentDateKey = new Date().toISOString().split('T')[0];
-        let currentEditingContext = { index: null, side: null }; // NEW: Context for team selection
+        let currentEditingContext = { index: null, side: null };
         let currentUser = null;
         let isInitialSetupDone = false;
         let draggedItem = null;
@@ -223,38 +218,53 @@
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const teamSelectModal = document.getElementById('team-select-modal');
-
         const MASTER_TEMPLATES = { '6-teams': [{home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},{home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},{home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},{home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6},{home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},{home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}], '5-teams': [{home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},{home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},{home:4, away:3}, {home:2, away:1}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2},{home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4}], '4-teams': [{home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3}, {home:3, away:1},{home:4, away:2}, {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4},{home:2, away:1}, {home:4, away:3}] };
         
+        // --- REFACTORED INIT FUNCTION ---
         async function init() {
+            // One-time event listeners setup
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
-            document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             
+            // Export buttons
+            document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
+            document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
+            document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
+            
+            // Navigation
+            setupNavigation();
+            
+            // Modals
+            document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.querySelector('#team-select-modal .close-modal-btn').addEventListener('click', () => teamSelectModal.style.display = 'none');
             window.addEventListener('click', (event) => { if (event.target == loginModal || event.target == teamSelectModal) { event.target.style.display = "none"; } });
 
+            // Realtime listener
+            listenToRealtimeChanges();
+
+            // Auth state change handler
             db.auth.onAuthStateChange(async (event, session) => {
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
                 const isLoggedIn = !!currentUser;
+                
                 toggleAdminView(isLoggedIn);
                 if (isLoggedIn) { userInfo.textContent = `👤 ${currentUser.email}`; loginModal.style.display = 'none'; }
-                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { await loadInitialData(); }
+                
+                // Load data on initial session or when login status changes
+                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { 
+                    await loadInitialData(); 
+                }
             });
         }
         
+        // --- REFACTORED LOADINITIALDATA FUNCTION ---
         async function loadInitialData() {
-            setupNavigation();
-            document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
-            document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
-            document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
             setActivePage(currentUser ? 'page-setup' : 'page-schedule');
-            listenToRealtimeChanges();
         }
 
         function toggleAdminView(isLoggedIn) {
@@ -269,24 +279,12 @@
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
         async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
+        async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
-        // --- CENTRAL DATABASE UPDATE FUNCTION ---
-        async function updateScheduleInDB(newSchedule) {
-            if (!currentUser) return;
-            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey);
-            if (error) {
-                alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message);
-                // The realtime listener will eventually correct the UI, or we can force a reload.
-            }
-        }
-        
-        // --- PAGE RENDERING AND INTERACTIONS ---
-
         function renderSchedulePage(date) {
             const container = document.getElementById('schedule-container');
             const dayData = appData[date];
             if (!dayData || !dayData.schedule) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
-
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`);
             let html = schedule.map((match, index) => { 
@@ -294,12 +292,10 @@
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
                 const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' }; 
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' };
-                
                 const adminDeleteBtn = currentUser ? `<div class="match-actions"><button class="delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">🗑️</button></div>` : '';
                 const draggableClass = currentUser ? 'draggable' : '';
                 const draggableAttr = currentUser ? 'draggable="true"' : '';
                 const clickableTeamClass = currentUser ? 'clickable-team' : '';
-
                 return `<div class="card match-card ${draggableClass}" data-index="${index}" ${draggableAttr}>
                             <div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${adminDeleteBtn}</div>
                             <div class="match-body">
@@ -309,13 +305,8 @@
                             </div>
                         </div>`; 
             }).join('');
-
-            if (currentUser) {
-                html += `<button id="add-match-btn" class="btn btn-primary">➕ เพิ่มแมตช์ใหม่</button>`;
-            }
-
+            if (currentUser && dayData.schedule) { html += `<button id="add-match-btn" class="btn btn-primary">➕ เพิ่มแมตช์ใหม่</button>`; }
             container.innerHTML = html;
-
             if(currentUser) {
                 container.querySelectorAll('.delete-match-btn').forEach(btn => btn.addEventListener('click', (e) => handleDeleteMatch(e.currentTarget.dataset.index)));
                 container.querySelectorAll('.clickable-team').forEach(el => el.addEventListener('click', (e) => openTeamSelectModal(e.currentTarget.dataset.index, e.currentTarget.dataset.side)));
@@ -327,86 +318,44 @@
         
         function setupDragAndDrop(container) {
             container.querySelectorAll('.match-card.draggable').forEach(draggable => {
-                draggable.addEventListener('dragstart', () => { draggedItem = draggable; setTimeout(() => draggable.classList.add('dragging'), 0); });
-                draggable.addEventListener('dragend', () => { draggable.classList.remove('dragging'); draggedItem = null; const placeholder = container.querySelector('.drag-over-placeholder'); if (placeholder) placeholder.remove(); });
+                draggable.addEventListener('dragstart', (e) => { draggedItem = e.currentTarget; setTimeout(() => e.currentTarget.classList.add('dragging'), 0); });
+                draggable.addEventListener('dragend', (e) => { e.currentTarget.classList.remove('dragging'); draggedItem = null; const placeholder = container.querySelector('.drag-over-placeholder'); if (placeholder) placeholder.remove(); });
             });
             container.addEventListener('dragover', e => { e.preventDefault(); const afterElement = getDragAfterElement(container, e.clientY); const placeholder = container.querySelector('.drag-over-placeholder') || document.createElement('div'); if (!placeholder.classList.contains('drag-over-placeholder')) placeholder.classList.add('drag-over-placeholder'); container.insertBefore(placeholder, afterElement); });
             container.addEventListener('drop', async e => {
                 e.preventDefault();
                 const placeholder = container.querySelector('.drag-over-placeholder');
                 if (!placeholder || !draggedItem) return;
-                
                 placeholder.parentNode.insertBefore(draggedItem, placeholder);
                 placeholder.remove();
                 
                 let reorderedSchedule = [];
                 const currentSchedule = appData[currentDateKey].schedule;
-                // Important: Rebuild the array from the new DOM order
-                container.querySelectorAll('.match-card[data-index]').forEach(card => {
-                    // Find the original match data using the index stored BEFORE the drag
+                const matchCards = container.querySelectorAll('.match-card[data-index]');
+                
+                // Rebuild the schedule array based on the new DOM order
+                for (const card of matchCards) {
                     const originalIndex = parseInt(card.dataset.index);
                     const matchData = currentSchedule[originalIndex];
                     if (matchData) reorderedSchedule.push(matchData);
-                });
-
-                // Update the original data-index attributes on the elements for the next drag operation
-                container.querySelectorAll('.match-card[data-index]').forEach((card, newIndex) => {
-                    card.setAttribute('data-index', newIndex);
-                });
-
+                }
+                
+                // Update Supabase with the new order
                 await updateScheduleInDB(reorderedSchedule);
+                // The realtime listener will trigger a full re-render, which will also fix the data-index attributes.
             });
         }
         
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.match-card.draggable:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } 
-                else { return closest; }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        async function handleAddMatch() {
-            if (!currentUser) return;
-            const dayData = appData[currentDateKey];
-            if (!dayData || !dayData.settings.activeTeams || dayData.settings.activeTeams.length < 2) {
-                alert('ต้องมีทีมที่เข้าร่วมอย่างน้อย 2 ทีมเพื่อเพิ่มแมตช์');
-                return;
-            }
-            let newSchedule = dayData.schedule ? [...dayData.schedule] : [];
-            const newMatch = {
-                home: dayData.settings.activeTeams[0],
-                away: dayData.settings.activeTeams[1],
-                homeScore: null,
-                awayScore: null,
-            };
-            newSchedule.push(newMatch);
-            await updateScheduleInDB(newSchedule);
-        }
-
-        async function handleDeleteMatch(index) {
-            if (!currentUser) return;
-            const date = currentDateKey;
-            const dayData = appData[date];
-            if (!dayData) return;
-            if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "แมตช์ที่ ${parseInt(index) + 1}" ?`)) {
-                let newSchedule = [...dayData.schedule];
-                newSchedule.splice(index, 1);
-                await updateScheduleInDB(newSchedule);
-            }
-        }
-        
+        function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.match-card.draggable:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; } }, { offset: Number.NEGATIVE_INFINITY }).element; }
+        async function handleAddMatch() { if (!currentUser) return; const dayData = appData[currentDateKey]; if (!dayData || !dayData.settings.activeTeams || dayData.settings.activeTeams.length < 2) { alert('ต้องมีทีมที่เข้าร่วมอย่างน้อย 2 ทีมเพื่อเพิ่มแมตช์'); return; } let newSchedule = dayData.schedule ? [...dayData.schedule] : []; const newMatch = { home: dayData.settings.activeTeams[0], away: dayData.settings.activeTeams[1], homeScore: null, awayScore: null, }; newSchedule.push(newMatch); await updateScheduleInDB(newSchedule); }
+        async function handleDeleteMatch(index) { if (!currentUser) return; const date = currentDateKey; const dayData = appData[date]; if (!dayData) return; if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "แมตช์ที่ ${parseInt(index) + 1}" ?`)) { let newSchedule = [...dayData.schedule]; newSchedule.splice(index, 1); await updateScheduleInDB(newSchedule); } }
         function openTeamSelectModal(index, side) {
             if (!currentUser) return;
             currentEditingContext = { index: parseInt(index), side };
             const dayData = appData[currentDateKey];
             const activeTeams = dayData.settings.activeTeams;
             const modalList = document.getElementById('team-select-modal-list');
-            
             document.getElementById('team-select-modal-title').textContent = `เลือกทีม${side === 'home' ? 'เหย้า' : 'เยือน'}สำหรับแมตช์ที่ ${currentEditingContext.index + 1}`;
-            
             modalList.innerHTML = '';
             activeTeams.forEach(slug => {
                 const team = TEAMS.find(t => t.slug === slug);
@@ -421,37 +370,9 @@
             });
             teamSelectModal.style.display = 'block';
         }
-
-        async function handleTeamSelection(newTeamSlug) {
-            const { index, side } = currentEditingContext;
-            if (index === null || !side) return;
-
-            const dayData = appData[currentDateKey];
-            let newSchedule = [...dayData.schedule];
-            const match = newSchedule[index];
-            
-            // Check for duplicates
-            const otherSide = side === 'home' ? 'away' : 'home';
-            if (match[otherSide] === newTeamSlug) {
-                alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้');
-                return;
-            }
-
-            match[side] = newTeamSlug;
-            teamSelectModal.style.display = 'none';
-            await updateScheduleInDB(newSchedule);
-        }
-
-        // --- UNCHANGED UTILITY AND SETUP FUNCTIONS from here ---
-
+        async function handleTeamSelection(newTeamSlug) { const { index, side } = currentEditingContext; if (index === null || !side) return; const dayData = appData[currentDateKey]; let newSchedule = [...dayData.schedule]; const match = newSchedule[index]; const otherSide = side === 'home' ? 'away' : 'home'; if (match[otherSide] === newTeamSlug) { alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้'); return; } match[side] = newTeamSlug; teamSelectModal.style.display = 'none'; await updateScheduleInDB(newSchedule); }
         function setActivePage(pageId) { if (!currentUser && pageId === 'page-setup') { alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้'); loginModal.style.display = 'block'; return; } activePage = pageId; pages.forEach(page => page.classList.remove('active')); document.getElementById(pageId).classList.add('active'); navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); content.scrollTop = 0; renderAllPagesForDate(currentDateKey); }
-        function setupPageSetup() {
-            const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt');
-            if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; }
-            contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none';
-            if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; }
-            updateOpenerSelects();
-        }
+        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; } updateOpenerSelects(); }
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
         function updateOpenerSelects() { const openerHomeSelect = document.getElementById('opener-home'); const openerAwaySelect = document.getElementById('opener-away'); const activeTeamSlugs = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug); const currentHome = openerHomeSelect.value; const currentAway = openerAwaySelect.value; openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; activeTeamSlugs.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const optionHtml = `<option value="${team.slug}">${team.name}</option>`; openerHomeSelect.innerHTML += optionHtml; openerAwaySelect.innerHTML += optionHtml; } }); openerHomeSelect.value = activeTeamSlugs.includes(currentHome) ? currentHome : ''; openerAwaySelect.value = activeTeamSlugs.includes(currentAway) ? currentAway : ''; }
         function renderAllPagesForDate(date) { setupPageSetup(); renderSchedulePage(date); renderScoresPage(date); renderLeaderboardPage(date); }
