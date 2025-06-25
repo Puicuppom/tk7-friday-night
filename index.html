@@ -221,7 +221,7 @@
         
 const MASTER_TEMPLATES = {
     '6-teams': [
-        // ตาราง 6 ทีมเดิมมีความสมดุลดีอยู่แล้ว
+        // This one is already correct and balanced
         {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
         {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},
         {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},
@@ -229,29 +229,21 @@ const MASTER_TEMPLATES = {
         {home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},
         {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}
     ],
-    '5-teams': [ // จัดใหม่ตามเงื่อนไข: ไม่แข่งติด, ไม่พักเกิน 2, แบ่ง 2 เลก
-        // --- Leg 1 ---
-        {home:1,away:2}, {home:3,away:4}, // 5 พัก
-        {home:5,away:1}, {home:2,away:3}, // 4 พัก
-        {home:4,away:5}, {home:1,away:3}, // 2 พัก
-        {home:2,away:4}, {home:5,away:3}, // 1 พัก
-        {home:1,away:4}, {home:2,away:5}, // 3 พัก
-        // --- Leg 2 ---
-        {home:2,away:1}, {home:4,away:3}, // 5 พัก
-        {home:1,away:5}, {home:3,away:2}, // 4 พัก
-        {home:5,away:4}, {home:3,away:1}, // 2 พัก
-        {home:4,away:2}, {home:3,away:5}, // 1 พัก
-        {home:4,away:1}, {home:5,away:2}  // 3 พัก
+    '5-teams': [ // Based on your provided list
+        {home:1, away:2}, {home:3, away:4}, {home:1, away:5}, {home:2, away:3},
+        {home:4, away:5}, {home:1, away:3}, {home:2, away:4}, {home:1, away:4},
+        {home:2, away:5}, {home:3, away:5},
+        // Leg 2 starts here
+        {home:2, away:1}, {home:4, away:3}, {home:5, away:1}, {home:3, away:2},
+        {home:5, away:4}, {home:3, away:1}, {home:4, away:2}, {home:4, away:1},
+        {home:5, away:2}, {home:5, away:3}
     ],
-    '4-teams': [ // จัดใหม่ตามเงื่อนไข: ไม่มีทีมพัก, แบ่ง 2 เลก
-        // --- Leg 1 ---
-        {home:1,away:2}, {home:3,away:4},
-        {home:4,away:1}, {home:2,away:3},
-        {home:1,away:3}, {home:4,away:2},
-        // --- Leg 2 ---
-        {home:2,away:1}, {home:4,away:3},
-        {home:1,away:4}, {home:3,away:2},
-        {home:3,away:1}, {home:2,away:4}
+    '4-teams': [ // True Double Round-Robin
+        {home:1, away:2}, {home:3, away:4}, {home:1, away:3}, {home:2, away:4},
+        {home:1, away:4}, {home:2, away:3},
+        // Leg 2 starts here
+        {home:2, away:1}, {home:4, away:3}, {home:3, away:1}, {home:4, away:2},
+        {home:4, away:1}, {home:3, away:2}
     ]
 };
         
