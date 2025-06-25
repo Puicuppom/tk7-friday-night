@@ -84,11 +84,9 @@
         .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
         .num-stepper-btn:hover { background-color: #444; }
         .match-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-        /* --- MODIFIED CSS FOR SCORE PAGE --- */
         #page-scores .match-body { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
         .team-score-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; min-width: 0; }
         .match-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 5px; flex-shrink: 0; }
-        /* --- END OF MODIFIED CSS --- */
         .score-control { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 150px; }
         .score-btn { width: 40px; height: 40px; border-radius: 8px; border: none; font-size: 24px; font-weight: 700; cursor: pointer; background-color: #333; color: var(--text-color); transition: background-color 0.2s; flex-shrink: 0; }
         .score-btn:hover:not(:disabled) { background-color: #444; }
@@ -220,7 +218,29 @@
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const teamSelectModal = document.getElementById('team-select-modal');
-        const MASTER_TEMPLATES = { '6-teams': [{home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},{home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},{home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},{home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6},{home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},{home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}], '5-teams': [{home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},{home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},{home:4, away:3}, {home:2, away:1}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2},{home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4}], '4-teams': [{home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3}, {home:3, away:1},{home:4, away:2}, {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4},{home:2, away:1}, {home:4, away:3}] };
+
+        // --- RESTORED MASTER TEMPLATES ---
+        const MASTER_TEMPLATES = {
+            '6-teams': [
+                {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
+                {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},
+                {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},
+                {home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6},
+                {home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},
+                {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}
+            ],
+            '5-teams': [
+                {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},
+                {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},
+                {home:4, away:3}, {home:2, away:1}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2},
+                {home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4}
+            ],
+            '4-teams': [
+                {home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3}, {home:3, away:1},
+                {home:4, away:2}, {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4},
+                {home:2, away:1}, {home:4, away:3}
+            ]
+        };
         
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -376,17 +396,7 @@
         function renderLeaderboardPage(date) { const container = document.getElementById('leaderboard-container'); const dayData = appData[date]; if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', '📊'); return; } const stats = calculateLeaderboard(date); const sortedTeams = Object.values(stats).sort((a, b) => { if (b.pts !== a.pts) return b.pts - a.pts; if (b.gd !== a.gd) return b.gd - a.gd; if (b.gf !== a.gf) return b.gf - a.gf; return a.name.localeCompare(b.name); }); const medals = ['🥇', '🥈', '🥉']; container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`; }
         async function updateScore(index, team, value) { if (!currentUser) return; const date = currentDateKey; let dayData = appData[date]; if (!dayData) return; const newSchedule = [...dayData.schedule]; const match = newSchedule[index]; if (team === 'home') match.homeScore = value; else match.awayScore = value; updateScheduleInDB(newSchedule); }
         
-        // --- MODIFIED SCORE BUTTON LOGIC ---
-        function updateScoreFromButton(event) {
-            const { index, team, op } = event.currentTarget.dataset;
-            const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
-            // Treat empty string as 0, then parse.
-            let currentValue = parseInt(input.value || '0'); 
-            currentValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1);
-            input.value = currentValue; 
-            updateScore(index, team, currentValue);
-        }
-        
+        function updateScoreFromButton(event) { const { index, team, op } = event.currentTarget.dataset; const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`); let currentValue = parseInt(input.value || '0'); currentValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1); input.value = currentValue; updateScore(index, team, currentValue); }
         function updateScoreFromInput(event) { const { index, team } = event.currentTarget.dataset; let value = event.currentTarget.value === '' ? null : Math.max(0, parseInt(event.currentTarget.value)); event.currentTarget.value = value === null ? '' : value; updateScore(index, team, value); }
         function resetScore(event) { const { index } = event.currentTarget.dataset; updateScore(index, 'home', null); updateScore(index, 'away', null); }
         function calculateLeaderboard(date) { const dayData = appData[date]; if (!dayData || !dayData.schedule) return {}; const stats = {}; dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); if(teamInfo) { stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; }}); dayData.schedule.forEach(match => { const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return; stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore; if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; } }); Object.values(stats).forEach(team => { team.gd = team.gf - team.ga; }); return stats; }
