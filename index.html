@@ -229,18 +229,16 @@
                 {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}
             ],
             '5-teams': [
-                {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, 
-                {home:4, away:5}, {home:1, away:3}, {home:2, away:4}, {home:3, away:5},
-                {home:1, away:4}, {home:2, away:5},
-                {home:3, away:4}, {home:1, away:2}, {home:5, away:3}, {home:4, away:1},
-                {home:2, away:5}, {home:3, away:1}, {home:4, away:2}, {home:1, away:5},
-                {home:3, away:2}, {home:4, away:5}
+                {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},
+                {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},
+                {home:2, away:1}, {home:4, away:3}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4},
+                {home:3, away:1}, {home:4, away:2}, {home:5, away:1}, {home:2, away:5}, {home:3, away:4}
             ],
             '4-teams': [
-                {home:1, away:2}, {home:3, away:4}, {home:4, away:1}, 
-                {home:2, away:3}, {home:3, away:1}, {home:4, away:2},
-                {home:1, away:3}, {home:2, away:4}, {home:3, away:2},
-                {home:1, away:4}, {home:2, away:1}, {home:4, away:3}
+                {home:1, away:2}, {home:3, away:4}, {home:1, away:3}, {home:2, away:4},
+                {home:1, away:4}, {home:2, away:3},
+                {home:2, away:1}, {home:4, away:3}, {home:3, away:1}, {home:4, away:2},
+                {home:4, away:1}, {home:3, away:2}
             ]
         };
         
@@ -381,11 +379,6 @@
         function generateScheduleFromTemplate(teams, opener) {
             const teamCount = teams.length;
             const templateKey = `${teamCount}-teams`;
-
-            if (!MASTER_TEMPLATES[templateKey]) {
-                alert(`ยังไม่มี Template สำหรับ ${teamCount} ทีม`);
-                throw new Error(`No template for ${teamCount} teams.`);
-            }
             
             let numberTemplate = [...MASTER_TEMPLATES[templateKey]];
             
@@ -416,6 +409,31 @@
             return translatedSchedule.map(match => ({...match, homeScore: null, awayScore: null}));
         }
 
+        function generateDoubleRoundRobin(teams) {
+            let teamList = [...teams];
+            const BYE = "BYE_TEAM_PLACEHOLDER";
+            if (teamList.length % 2 !== 0) {
+                teamList.push(BYE);
+            }
+            const numTeams = teamList.length;
+            const numRounds = numTeams - 1;
+            const leg1 = [];
+
+            for (let round = 0; round < numRounds; round++) {
+                for (let i = 0; i < numTeams / 2; i++) {
+                    const home = teamList[i];
+                    const away = teamList[numTeams - 1 - i];
+                    if (home !== BYE && away !== BYE) {
+                        leg1.push({ home, away });
+                    }
+                }
+                teamList.splice(1, 0, teamList.pop());
+            }
+
+            const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
+            return [...leg1, ...leg2];
+        }
+
         async function generateAndSaveSchedule() {
             if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น');
             const settings = { 
@@ -430,14 +448,30 @@
             if (settings.opener.home && settings.opener.away && settings.opener.home === settings.opener.away) return alert('ทีมเหย้า-เยือนนัดเปิดสนามต้องไม่ซ้ำกัน');
             
             let schedule;
-            try {
-                schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener);
-            } catch (e) {
-                console.error(e.message);
-                return;
-            }
+            const teamCount = settings.activeTeams.length;
+            const templateKey = `${teamCount}-teams`;
 
-            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: schedule }, { onConflict: 'match_date' });
+            if (MASTER_TEMPLATES[templateKey]) {
+                console.log(`Using MASTER TEMPLATE for ${teamCount} teams...`);
+                schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener);
+            } else {
+                console.log(`No template found. Using Round-Robin algorithm for ${teamCount} teams...`);
+                schedule = generateDoubleRoundRobin(settings.activeTeams);
+                
+                // Opener logic for algorithm-generated schedule
+                if (settings.opener && settings.opener.home && settings.opener.away) {
+                    const openerIndex = schedule.findIndex(m => m.home === settings.opener.home && m.away === settings.opener.away);
+                    if (openerIndex > 0) {
+                        const part1 = schedule.slice(openerIndex);
+                        const part2 = schedule.slice(0, openerIndex);
+                        schedule = [...part1, ...part2];
+                    }
+                }
+            }
+            
+            const finalSchedule = schedule.map(match => ({...match, homeScore: null, awayScore: null}));
+
+            const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: finalSchedule }, { onConflict: 'match_date' });
             
             if (error) { 
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
