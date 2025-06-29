@@ -136,14 +136,16 @@
                         <h2>✅ เลือกทีมที่เข้าร่วม</h2>
                         <div id="team-toggle-container"></div>
                     </div>
-                     <div class="card">
+                     <div class="card" id="advanced-options-card">
                         <div id="template-selector-container" class="form-group" style="display: none;">
                            <label for="template-selector">📋 รูปแบบตาราง</label>
                            <select id="template-selector"></select>
                         </div>
-                        <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
-                        <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
-                        <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
+                        <div id="opener-selector-container" style="display: none;">
+                            <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
+                            <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
+                            <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
+                        </div>
                     </div>
                     <button id="generate-schedule-btn" class="btn btn-secondary">สร้างตารางแข่งขัน</button>
                 </div>
@@ -205,7 +207,19 @@
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-        const TEAMS = [ { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' }, ];
+        
+        const TEAMS = [ 
+            { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
+            { name: 'ทีมแดง', color: 'red', slug: 'red' }, 
+            { name: 'ทีมขาว', color: 'white', slug: 'white' }, 
+            { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, 
+            { name: 'ทีมดำ', color: 'black', slug: 'black' }, 
+            { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' }, 
+            { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, 
+            { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, 
+            { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, 
+            { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, 
+        ];
         
         let appData = {};
         let activePage = 'page-schedule';
@@ -225,7 +239,7 @@
         const teamSelectModal = document.getElementById('team-select-modal');
         
         const MASTER_TEMPLATES = {
-            '6-teams': [{ name: 'ตาราง 1', data: [
+            '6-teams': [{ name: '6 ทีม', data: [
                 {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
                 {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},
                 {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},
@@ -377,13 +391,38 @@
         }
         async function handleTeamSelection(newTeamSlug) { const { index, side } = currentEditingContext; if (index === null || !side) return; const dayData = appData[currentDateKey]; let newSchedule = [...dayData.schedule]; const match = newSchedule[index]; const otherSide = side === 'home' ? 'away' : 'home'; if (match[otherSide] === newTeamSlug) { alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้'); return; } match[side] = newTeamSlug; teamSelectModal.style.display = 'none'; await updateScheduleInDB(newSchedule); }
         function setActivePage(pageId) { if (!currentUser && pageId === 'page-setup') { alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้'); loginModal.style.display = 'block'; return; } activePage = pageId; pages.forEach(page => page.classList.remove('active')); document.getElementById(pageId).classList.add('active'); navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); content.scrollTop = 0; renderAllPagesForDate(currentDateKey); }
-        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects)); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateTemplateSelector)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; } updateOpenerSelects(); updateTemplateSelector(); }
+        
+        function setupPageSetup() { 
+            const contentWrapper = document.getElementById('setup-content-wrapper'); 
+            const loginPrompt = document.getElementById('setup-login-prompt'); 
+            if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } 
+            contentWrapper.style.display = 'block'; 
+            loginPrompt.style.display = 'none'; 
+            if (!isInitialSetupDone) { 
+                const container = document.getElementById('team-toggle-container'); 
+                container.innerHTML = ''; 
+                TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); 
+                document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); 
+                document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); 
+                document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateAdvancedOptions)); 
+                document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); 
+                isInitialSetupDone = true; 
+            } 
+            updateAdvancedOptions(); 
+        }
+
+        function updateAdvancedOptions() {
+            updateOpenerSelects();
+            updateTemplateSelector();
+        }
+        
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
         function updateOpenerSelects() { const openerHomeSelect = document.getElementById('opener-home'); const openerAwaySelect = document.getElementById('opener-away'); const activeTeamSlugs = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug); const currentHome = openerHomeSelect.value; const currentAway = openerAwaySelect.value; openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; activeTeamSlugs.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const optionHtml = `<option value="${team.slug}">${team.name}</option>`; openerHomeSelect.innerHTML += optionHtml; openerAwaySelect.innerHTML += optionHtml; } }); openerHomeSelect.value = activeTeamSlugs.includes(currentHome) ? currentHome : ''; openerAwaySelect.value = activeTeamSlugs.includes(currentAway) ? currentAway : ''; }
         function renderAllPagesForDate(date) { setupPageSetup(); renderSchedulePage(date); renderScoresPage(date); renderLeaderboardPage(date); }
         
         function updateTemplateSelector() {
-            const container = document.getElementById('template-selector-container');
+            const templateContainer = document.getElementById('template-selector-container');
+            const openerContainer = document.getElementById('opener-selector-container');
             const selector = document.getElementById('template-selector');
             const teamCount = document.querySelectorAll('.team-switch:checked').length;
             const templateKey = `${teamCount}-teams`;
@@ -398,13 +437,19 @@
                     option.textContent = template.name;
                     selector.appendChild(option);
                 });
-                container.style.display = 'block';
+                templateContainer.style.display = 'block';
             } else {
-                container.style.display = 'none';
+                templateContainer.style.display = 'none';
+            }
+            
+            if (teamCount === 4 || teamCount === 5) {
+                openerContainer.style.display = 'none';
+            } else {
+                openerContainer.style.display = 'block';
             }
         }
 
-        function generateScheduleFromTemplate(teams, opener, templateIndex = 0) {
+        function generateScheduleFromTemplate(teams, templateIndex = 0, opener = null) {
             const teamCount = teams.length;
             const templateKey = `${teamCount}-teams`;
             
@@ -486,7 +531,9 @@
 
             if (MASTER_TEMPLATES[templateKey]) {
                 console.log(`Using MASTER TEMPLATE for ${teamCount} teams (Variant: ${templateIndex})...`);
-                schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener, templateIndex);
+                let useOpener = (teamCount === 6); // Only use opener for 6 teams or others, not 4 or 5
+                schedule = generateScheduleFromTemplate(settings.activeTeams, templateIndex, useOpener ? settings.opener : null);
+
             } else {
                 console.log(`No template found. Using Round-Robin algorithm for ${teamCount} teams...`);
                 schedule = generateDoubleRoundRobin(settings.activeTeams);
@@ -518,8 +565,8 @@
         function listenToRealtimeChanges() { db.channel('match_days_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => { console.log('Realtime Change received!', payload); const currentSelectedDate = document.getElementById('schedule-date-selector').value; await updateDateSelectors(); await loadDataForDate(currentSelectedDate || new Date().toISOString().split('T')[0]); }).subscribe(); }
         function setupNavigation() { navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); }); }
         async function loadDataForDate(date) { currentDateKey = date; if(document.getElementById('match-date')) document.getElementById('match-date').value = date; const { data, error } = await db.from('match_days').select('*').eq('match_date', date).single(); if (data) { appData[date] = data; if(currentUser) loadSettingsFromData(data.settings); } else { appData[date] = null; if(currentUser) resetSettingsForm(); } renderAllPagesForDate(date); }
-        function loadSettingsFromData(settings) { if (!settings || !currentUser) return; document.getElementById('time-per-match').value = settings.timePerMatch || 10; document.getElementById('start-time').value = settings.startTime || '20:00'; document.querySelectorAll('.team-switch').forEach(sw => { const teamSlug = sw.dataset.teamSlug; sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true; }); updateOpenerSelects(); document.getElementById('opener-home').value = settings.opener?.home || ''; document.getElementById('opener-away').value = settings.opener?.away || ''; }
-        function resetSettingsForm() { if (!currentUser) return; document.getElementById('time-per-match').value = 10; document.getElementById('start-time').value = '20:00'; document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true); updateOpenerSelects(); document.getElementById('opener-home').value = ''; document.getElementById('opener-away').value = ''; }
+        function loadSettingsFromData(settings) { if (!settings || !currentUser) return; document.getElementById('time-per-match').value = settings.timePerMatch || 10; document.getElementById('start-time').value = settings.startTime || '20:00'; document.querySelectorAll('.team-switch').forEach(sw => { const teamSlug = sw.dataset.teamSlug; sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true; }); updateAdvancedOptions(); document.getElementById('opener-home').value = settings.opener?.home || ''; document.getElementById('opener-away').value = settings.opener?.away || ''; }
+        function resetSettingsForm() { if (!currentUser) return; document.getElementById('time-per-match').value = 10; document.getElementById('start-time').value = '20:00'; document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true); updateAdvancedOptions(); document.getElementById('opener-home').value = ''; document.getElementById('opener-away').value = ''; }
         async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else alert('ลบข้อมูลเรียบร้อยแล้ว'); } }
         async function updateDateSelectors() { const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false }); if (error) return; const dates = datesData.map(d => d.match_date); const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')]; selectors.forEach(selector => { const currentVal = selector.value; selector.innerHTML = ''; if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); } if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; } else if (dates.length > 0) { selector.value = dates[0]; } }); selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; }); document.getElementById('delete-day-btn').onclick = deleteDay; }
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
