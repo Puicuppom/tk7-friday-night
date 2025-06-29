@@ -133,9 +133,14 @@
                         <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
                     <div class="card">
-                        <h2>✅ เลือกทีมที่เข้าร่วม</h2><div id="team-toggle-container"></div>
+                        <h2>✅ เลือกทีมที่เข้าร่วม</h2>
+                        <div id="team-toggle-container"></div>
                     </div>
                      <div class="card">
+                        <div id="template-selector-container" class="form-group" style="display: none;">
+                           <label for="template-selector">📋 รูปแบบตาราง</label>
+                           <select id="template-selector"></select>
+                        </div>
                         <h2>🏠 นัดเปิดสนาม (ไม่บังคับ)</h2>
                         <div class="form-group"><label for="opener-home">ทีมเหย้า</label><select id="opener-home"></select></div>
                         <div class="form-group"><label for="opener-away">ทีมเยือน</label><select id="opener-away"></select></div>
@@ -220,26 +225,27 @@
         const teamSelectModal = document.getElementById('team-select-modal');
         
         const MASTER_TEMPLATES = {
-            '6-teams': [
+            '6-teams': [{ name: 'ตาราง 1', data: [
                 {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
                 {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},
                 {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},
                 {home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6},
                 {home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},
                 {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}
-            ],
+            ]}],
             '5-teams': [
-                {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5},
-                {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5},
-                {home:2, away:1}, {home:4, away:3}, {home:1, away:5}, {home:3, away:2}, {home:5, away:4},
-                {home:3, away:1}, {home:4, away:2}, {home:5, away:1}, {home:2, away:5}, {home:3, away:4}
+                { name: 'ตาราง 1', data: [ {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5}, {home:3, away:4}, {home:1, away:2}, {home:5, away:3}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:4, away:5} ] },
+                { name: 'ตาราง 2', data: [ {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:2}, {home:1, away:3}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:3}, {home:5, away:1}, {home:4, away:2}, {home:3, away:5}, {home:1, away:2}, {home:2, away:5}, {home:3, away:1}, {home:5, away:4}, {home:2, away:1}, {home:3, away:4} ] },
+                { name: 'ตาราง 3', data: [ {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:1}, {home:5, away:2}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:2}, {home:4, away:5}, {home:3, away:1}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:5}, {home:3, away:1}, {home:1, away:5}, {home:2, away:3} ] },
+                { name: 'ตาราง 4', data: [ {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:2}, {home:3, away:4}, {home:2, away:5}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:4}, {home:3, away:2}, {home:5, away:4}, {home:1, away:2} ] },
+                { name: 'ตาราง 5', data: [ {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:4}, {home:3, away:5}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:5}, {home:2, away:3}, {home:1, away:4}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:3}, {home:2, away:1}, {home:4, away:3}, {home:5, away:1} ] }
             ],
-            '4-teams': [
+            '4-teams': [{ name: 'ตาราง 1', data: [
                 {home:1, away:2}, {home:3, away:4}, {home:1, away:3}, {home:2, away:4},
                 {home:1, away:4}, {home:2, away:3},
                 {home:2, away:1}, {home:4, away:3}, {home:3, away:1}, {home:4, away:2},
                 {home:4, away:1}, {home:3, away:2}
-            ]
+            ]}]
         };
         
         async function init() {
@@ -371,16 +377,42 @@
         }
         async function handleTeamSelection(newTeamSlug) { const { index, side } = currentEditingContext; if (index === null || !side) return; const dayData = appData[currentDateKey]; let newSchedule = [...dayData.schedule]; const match = newSchedule[index]; const otherSide = side === 'home' ? 'away' : 'home'; if (match[otherSide] === newTeamSlug) { alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้'); return; } match[side] = newTeamSlug; teamSelectModal.style.display = 'none'; await updateScheduleInDB(newSchedule); }
         function setActivePage(pageId) { if (!currentUser && pageId === 'page-setup') { alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้'); loginModal.style.display = 'block'; return; } activePage = pageId; pages.forEach(page => page.classList.remove('active')); document.getElementById(pageId).classList.add('active'); navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); content.scrollTop = 0; renderAllPagesForDate(currentDateKey); }
-        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; } updateOpenerSelects(); }
+        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateOpenerSelects)); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateTemplateSelector)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; } updateOpenerSelects(); updateTemplateSelector(); }
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
         function updateOpenerSelects() { const openerHomeSelect = document.getElementById('opener-home'); const openerAwaySelect = document.getElementById('opener-away'); const activeTeamSlugs = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug); const currentHome = openerHomeSelect.value; const currentAway = openerAwaySelect.value; openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; activeTeamSlugs.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const optionHtml = `<option value="${team.slug}">${team.name}</option>`; openerHomeSelect.innerHTML += optionHtml; openerAwaySelect.innerHTML += optionHtml; } }); openerHomeSelect.value = activeTeamSlugs.includes(currentHome) ? currentHome : ''; openerAwaySelect.value = activeTeamSlugs.includes(currentAway) ? currentAway : ''; }
         function renderAllPagesForDate(date) { setupPageSetup(); renderSchedulePage(date); renderScoresPage(date); renderLeaderboardPage(date); }
         
-        function generateScheduleFromTemplate(teams, opener) {
+        function updateTemplateSelector() {
+            const container = document.getElementById('template-selector-container');
+            const selector = document.getElementById('template-selector');
+            const teamCount = document.querySelectorAll('.team-switch:checked').length;
+            const templateKey = `${teamCount}-teams`;
+            
+            const templates = MASTER_TEMPLATES[templateKey];
+
+            if (templates && templates.length > 1) {
+                selector.innerHTML = '';
+                templates.forEach((template, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = template.name;
+                    selector.appendChild(option);
+                });
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function generateScheduleFromTemplate(teams, opener, templateIndex = 0) {
             const teamCount = teams.length;
             const templateKey = `${teamCount}-teams`;
             
-            let numberTemplate = [...MASTER_TEMPLATES[templateKey]];
+            if (!MASTER_TEMPLATES[templateKey] || !MASTER_TEMPLATES[templateKey][templateIndex]) {
+                 throw new Error(`Template not found for ${teamCount} teams at index ${templateIndex}.`);
+            }
+            
+            let numberTemplate = [...MASTER_TEMPLATES[templateKey][templateIndex].data];
             
             const teamToNumberMap = new Map();
             const numberToTeamMap = new Map();
@@ -406,7 +438,7 @@
                 }
             }
 
-            return translatedSchedule.map(match => ({...match, homeScore: null, awayScore: null}));
+            return translatedSchedule;
         }
 
         function generateDoubleRoundRobin(teams) {
@@ -450,15 +482,15 @@
             let schedule;
             const teamCount = settings.activeTeams.length;
             const templateKey = `${teamCount}-teams`;
+            const templateIndex = parseInt(document.getElementById('template-selector').value) || 0;
 
             if (MASTER_TEMPLATES[templateKey]) {
-                console.log(`Using MASTER TEMPLATE for ${teamCount} teams...`);
-                schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener);
+                console.log(`Using MASTER TEMPLATE for ${teamCount} teams (Variant: ${templateIndex})...`);
+                schedule = generateScheduleFromTemplate(settings.activeTeams, settings.opener, templateIndex);
             } else {
                 console.log(`No template found. Using Round-Robin algorithm for ${teamCount} teams...`);
                 schedule = generateDoubleRoundRobin(settings.activeTeams);
                 
-                // Opener logic for algorithm-generated schedule
                 if (settings.opener && settings.opener.home && settings.opener.away) {
                     const openerIndex = schedule.findIndex(m => m.home === settings.opener.home && m.away === settings.opener.away);
                     if (openerIndex > 0) {
