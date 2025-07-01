@@ -206,10 +206,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // ***** ⬇️ START OF CHANGE ⬇️ *****
-        // แก้ไขตรงนี้: ลบอ็อบเจกต์ตัวที่สามออก เพื่อให้ Supabase ใช้ค่าเริ่มต้น (บันทึก session)
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        // ***** ⬆️ END OF CHANGE ⬆️ *****
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -240,7 +237,6 @@
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const teamSelectModal = document.getElementById('team-select-modal');
-        const loginForm = document.getElementById('login-form'); // เพิ่มตัวแปร loginForm
         
         const MASTER_TEMPLATES = {
             '6-teams': [{ name: '6 ทีม', data: [
@@ -269,7 +265,7 @@
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
-            loginForm.addEventListener('submit', handleLogin);
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
             
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
@@ -297,7 +293,6 @@
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
-            // ถ้ายังไม่มี session (currentUser เป็น null) ให้ไปหน้า schedule ก่อน
             setActivePage(currentUser ? 'page-setup' : 'page-schedule');
         }
 
