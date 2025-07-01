@@ -184,14 +184,8 @@
             <span class="close-modal-btn">×</span>
             <h2>🔐 เข้าสู่ระบบผู้ดูแล</h2>
             <form id="login-form">
-                <div class="form-group">
-                    <label for="login-email">อีเมล</label>
-                    <input type="email" id="login-email" required autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="login-password">รหัสผ่าน</label>
-                    <input type="password" id="login-password" required autocomplete="current-password">
-                </div>
+                <div class="form-group"><label for="login-email">อีเมล</label><input type="email" id="login-email" required autocomplete="email"></div>
+                <div class="form-group"><label for="login-password">รหัสผ่าน</label><input type="password" id="login-password" required autocomplete="current-password"></div>
                 <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
             </form>
         </div>
@@ -270,79 +264,57 @@
         };
 
         function handleAuthError(error, operationName = 'ดำเนินการ') {
-            const shouldReload = error && (
-                error.status === 401 || 
-                error.message.includes('JWT expired') ||
-                error.message.toLowerCase().includes('network error') ||
-                error.message.toLowerCase().includes('failed to fetch')
-            );
-
-            if (shouldReload) {
-                alert(`การเชื่อมต่อหรือเซสชันมีปัญหา (${error.message})\nกำลังรีเฟรชหน้าเว็บเพื่อเชื่อมต่อใหม่...`);
+            if (error && (error.message.includes('JWT expired') || error.status === 401)) {
+                alert('เซสชันของคุณหมดอายุ กรุณาเข้าระบบใหม่อีกครั้งเพื่อดำเนินการต่อ');
                 location.reload();
                 return true;
             }
-            
             alert(`เกิดข้อผิดพลาดในการ${operationName}: ` + error.message);
             return false;
         }
         
         async function init() {
-            // ---- Event Listeners and Basic Setup ----
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
             loginForm.addEventListener('submit', handleLogin);
-            setupNavigation();
+            
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-leaderboard-btn').addEventListener('click', (e) => exportElementAsPNG('leaderboard-container', `TK7-Leaderboard-${currentDateKey}.png`, e.currentTarget));
+            
+            setupNavigation();
+            
             document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.querySelector('#team-select-modal .close-modal-btn').addEventListener('click', () => teamSelectModal.style.display = 'none');
             window.addEventListener('click', (event) => { if (event.target == loginModal || event.target == teamSelectModal) { event.target.style.display = "none"; } });
 
-            // ---- Proactive Connection Management ----
-            document.addEventListener('visibilitychange', checkForConnection);
-            window.addEventListener('focus', checkForConnection);
-            setInterval(checkForConnection, 90000); 
-
-            let isChecking = false;
-            async function checkForConnection() {
-                if (document.visibilityState === 'visible' && !isChecking) {
-                    console.log('Heartbeat: Checking connection status...');
-                    isChecking = true;
-                    try {
-                        const { data: { session }, error } = await db.auth.getSession();
-                        
-                        if (error) throw error;
-
-                        if (!session && currentUser) {
-                            console.error("Heartbeat: Session lost! Forcing reload.");
-                            alert("เซสชันหมดอายุหรือการเชื่อมต่อมีปัญหา กำลังเชื่อมต่อใหม่...");
-                            location.reload();
-                        }
-                    } catch (err) {
-                        console.error("Heartbeat: Connection check failed!", err.message);
-                        handleAuthError(err, "ตรวจสอบการเชื่อมต่อ");
-                    } finally {
-                        isChecking = false;
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            window.addEventListener('focus', handleVisibilityChange);
+            
+            async function handleVisibilityChange() {
+                if (document.visibilityState === 'visible') {
+                    console.log("Tab is active again. Checking auth state.");
+                    const { data: { session } } = await db.auth.getSession();
+                    if (!session && currentUser) {
+                        console.log("Session lost after resume. Reloading page.");
+                        alert("การเชื่อมต่อขาดหาย กรุณาเข้าระบบใหม่อีกครั้ง");
+                        location.reload();
+                    } else if (session && !currentUser) {
+                        console.log("Session restored after resume. Reloading page.");
+                        location.reload();
                     }
                 }
             }
 
-            // ---- Supabase Auth and Data Handling ----
             listenToRealtimeChanges();
+
             db.auth.onAuthStateChange(async (event, session) => {
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
                 const isLoggedIn = !!currentUser;
                 toggleAdminView(isLoggedIn);
-                if (isLoggedIn) { 
-                    userInfo.textContent = `👤 ${currentUser.email}`; 
-                    loginModal.style.display = 'none';
-                }
-                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { 
-                    await loadInitialData(); 
-                }
+                if (isLoggedIn) { userInfo.textContent = `👤 ${currentUser.email}`; loginModal.style.display = 'none'; }
+                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { await loadInitialData(); }
             });
         }
         
@@ -366,8 +338,10 @@
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
         
         async function handleLogout() { 
-            await db.auth.signOut();
-            location.reload();
+            const { error } = await db.auth.signOut(); 
+            if (error) { 
+                handleAuthError(error, 'ออกจากระบบ');
+            }
         }
         
         async function updateScheduleInDB(newSchedule) { 
@@ -423,27 +397,24 @@
                 e.preventDefault();
                 const placeholder = container.querySelector('.drag-over-placeholder');
                 if (!placeholder || !draggedItem) return;
-                placeholder.parentNode.insertBefore(draggedItem, placeholder);
-                placeholder.remove();
-                
                 const originalSchedule = appData[currentDateKey].schedule;
-                const reorderedSchedule = [];
+                const draggedIndex = parseInt(draggedItem.dataset.index);
+                draggedItem.dataset.index = ''; // Clear index to avoid confusion
                 
-                container.querySelectorAll('.match-card.draggable').forEach(card => {
-                    const originalIndex = parseInt(card.dataset.index);
-                    const matchData = originalSchedule[originalIndex];
-                    if (matchData) {
-                        reorderedSchedule.push(matchData);
-                    }
+                let reorderedSchedule = [];
+                const cards = [...container.querySelectorAll('.match-card[data-index]')];
+                let droppedIndex = cards.indexOf(draggedItem);
+
+                for (const card of cards) {
+                    reorderedSchedule.push(originalSchedule[parseInt(card.dataset.index)]);
+                }
+                
+                // Update dataset.index for all cards to reflect new order
+                container.querySelectorAll('.match-card').forEach((card, newIndex) => {
+                    card.dataset.index = newIndex;
                 });
                 
-                if (reorderedSchedule.length === originalSchedule.length) {
-                    await updateScheduleInDB(reorderedSchedule);
-                } else {
-                    console.error("Drag and Drop failed due to schedule mismatch. Reloading for safety.");
-                    alert("เกิดข้อผิดพลาดในการเรียงลำดับ กำลังรีเฟรชข้อมูล");
-                    location.reload();
-                }
+                await updateScheduleInDB(reorderedSchedule);
             });
         }
         
