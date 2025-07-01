@@ -337,12 +337,13 @@
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
         
+        // ***** START: UPDATED LOGOUT FUNCTION *****
         async function handleLogout() { 
-            const { error } = await db.auth.signOut(); 
-            if (error) { 
-                handleAuthError(error, 'ออกจากระบบ');
-            }
+            await db.auth.signOut();
+            // บังคับรีโหลดหน้าเว็บเพื่อเคลียร์สถานะทั้งหมดและป้องกัน Race Condition
+            location.reload();
         }
+        // ***** END: UPDATED LOGOUT FUNCTION *****
         
         async function updateScheduleInDB(newSchedule) { 
             if (!currentUser) return; 
@@ -397,24 +398,27 @@
                 e.preventDefault();
                 const placeholder = container.querySelector('.drag-over-placeholder');
                 if (!placeholder || !draggedItem) return;
+                placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                placeholder.remove();
+                
                 const originalSchedule = appData[currentDateKey].schedule;
-                const draggedIndex = parseInt(draggedItem.dataset.index);
-                draggedItem.dataset.index = ''; // Clear index to avoid confusion
+                const reorderedSchedule = [];
                 
-                let reorderedSchedule = [];
-                const cards = [...container.querySelectorAll('.match-card[data-index]')];
-                let droppedIndex = cards.indexOf(draggedItem);
-
-                for (const card of cards) {
-                    reorderedSchedule.push(originalSchedule[parseInt(card.dataset.index)]);
-                }
-                
-                // Update dataset.index for all cards to reflect new order
-                container.querySelectorAll('.match-card').forEach((card, newIndex) => {
-                    card.dataset.index = newIndex;
+                container.querySelectorAll('.match-card.draggable').forEach(card => {
+                    const originalIndex = parseInt(card.dataset.index);
+                    const matchData = originalSchedule.find((m, i) => i === originalIndex);
+                    if (matchData) {
+                        reorderedSchedule.push(matchData);
+                    }
                 });
                 
-                await updateScheduleInDB(reorderedSchedule);
+                if (reorderedSchedule.length === originalSchedule.length) {
+                    await updateScheduleInDB(reorderedSchedule);
+                } else {
+                    console.error("Drag and Drop failed due to schedule mismatch. Reloading for safety.");
+                    alert("เกิดข้อผิดพลาดในการเรียงลำดับ กำลังรีเฟรชข้อมูล");
+                    location.reload();
+                }
             });
         }
         
