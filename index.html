@@ -206,6 +206,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
+        // [MODIFIED] Using default auth settings to persist the session. This is the correct setup for "staying logged in".
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const TEAMS = [ 
@@ -262,16 +263,6 @@
                 {home:2, away:1}, {home:4, away:3}
             ]}]
         };
-
-        function handleAuthError(error, operationName = 'ดำเนินการ') {
-            if (error && (error.message.includes('JWT expired') || error.status === 401)) {
-                alert('เซสชันของคุณหมดอายุ กรุณาเข้าระบบใหม่อีกครั้งเพื่อดำเนินการต่อ');
-                location.reload();
-                return true;
-            }
-            alert(`เกิดข้อผิดพลาดในการ${operationName}: ` + error.message);
-            return false;
-        }
         
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -287,24 +278,6 @@
             document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.querySelector('#team-select-modal .close-modal-btn').addEventListener('click', () => teamSelectModal.style.display = 'none');
             window.addEventListener('click', (event) => { if (event.target == loginModal || event.target == teamSelectModal) { event.target.style.display = "none"; } });
-
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-            window.addEventListener('focus', handleVisibilityChange);
-            
-            async function handleVisibilityChange() {
-                if (document.visibilityState === 'visible') {
-                    console.log("Tab is active again. Checking auth state.");
-                    const { data: { session } } = await db.auth.getSession();
-                    if (!session && currentUser) {
-                        console.log("Session lost after resume. Reloading page.");
-                        alert("การเชื่อมต่อขาดหาย กรุณาเข้าระบบใหม่อีกครั้ง");
-                        location.reload();
-                    } else if (session && !currentUser) {
-                        console.log("Session restored after resume. Reloading page.");
-                        location.reload();
-                    }
-                }
-            }
 
             listenToRealtimeChanges();
 
@@ -337,20 +310,26 @@
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
         
-        async function handleLogout() { 
-            const { error } = await db.auth.signOut(); 
-            if (error) { 
-                handleAuthError(error, 'ออกจากระบบ');
-            }
+        // [MODIFIED] Final, most robust logout function.
+        function handleLogout() {
+            logoutBtn.disabled = true;
+            logoutBtn.textContent = 'กำลังออก...';
+
+            // Fire the signOut request. We don't wait for it.
+            // We use .finally() to guarantee the reload happens.
+            db.auth.signOut()
+                .catch(err => {
+                    // This is for debugging, it won't stop the logout process.
+                    console.error("Sign out error occurred, but proceeding with reload:", err.message);
+                })
+                .finally(() => {
+                    // This block ALWAYS runs, whether signOut succeeded or failed.
+                    // This is the most reliable way to force the app to a logged-out state.
+                    location.reload();
+                });
         }
         
-        async function updateScheduleInDB(newSchedule) { 
-            if (!currentUser) return; 
-            const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); 
-            if (error) { 
-                handleAuthError(error, 'อัปเดตตาราง');
-            } 
-        }
+        async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
             const container = document.getElementById('schedule-container');
@@ -397,23 +376,12 @@
                 e.preventDefault();
                 const placeholder = container.querySelector('.drag-over-placeholder');
                 if (!placeholder || !draggedItem) return;
-                const originalSchedule = appData[currentDateKey].schedule;
-                const draggedIndex = parseInt(draggedItem.dataset.index);
-                draggedItem.dataset.index = ''; // Clear index to avoid confusion
-                
+                placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                placeholder.remove();
                 let reorderedSchedule = [];
-                const cards = [...container.querySelectorAll('.match-card[data-index]')];
-                let droppedIndex = cards.indexOf(draggedItem);
-
-                for (const card of cards) {
-                    reorderedSchedule.push(originalSchedule[parseInt(card.dataset.index)]);
-                }
-                
-                // Update dataset.index for all cards to reflect new order
-                container.querySelectorAll('.match-card').forEach((card, newIndex) => {
-                    card.dataset.index = newIndex;
-                });
-                
+                const currentSchedule = appData[currentDateKey].schedule;
+                const matchCards = container.querySelectorAll('.match-card[data-index]');
+                for (const card of matchCards) { const originalIndex = parseInt(card.dataset.index); const matchData = currentSchedule[originalIndex]; if (matchData) reorderedSchedule.push(matchData); }
                 await updateScheduleInDB(reorderedSchedule);
             });
         }
@@ -584,7 +552,7 @@
 
             if (MASTER_TEMPLATES[templateKey]) {
                 console.log(`Using MASTER TEMPLATE for ${teamCount} teams (Variant: ${templateIndex})...`);
-                let useOpener = (teamCount === 6);
+                let useOpener = (teamCount === 6); // Only use opener for 6 teams or others, not 4 or 5
                 schedule = generateScheduleFromTemplate(settings.activeTeams, templateIndex, useOpener ? settings.opener : null);
 
             } else {
@@ -606,7 +574,7 @@
             const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: finalSchedule }, { onConflict: 'match_date' });
             
             if (error) { 
-                handleAuthError(error, 'บันทึกข้อมูล');
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
             } else { 
                 alert('สร้างตารางแข่งขันเรียบร้อยแล้ว!'); 
                 await loadDataForDate(date); 
@@ -620,7 +588,7 @@
         async function loadDataForDate(date) { currentDateKey = date; if(document.getElementById('match-date')) document.getElementById('match-date').value = date; const { data, error } = await db.from('match_days').select('*').eq('match_date', date).single(); if (data) { appData[date] = data; if(currentUser) loadSettingsFromData(data.settings); } else { appData[date] = null; if(currentUser) resetSettingsForm(); } renderAllPagesForDate(date); }
         function loadSettingsFromData(settings) { if (!settings || !currentUser) return; document.getElementById('time-per-match').value = settings.timePerMatch || 10; document.getElementById('start-time').value = settings.startTime || '20:00'; document.querySelectorAll('.team-switch').forEach(sw => { const teamSlug = sw.dataset.teamSlug; sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true; }); updateAdvancedOptions(); document.getElementById('opener-home').value = settings.opener?.home || ''; document.getElementById('opener-away').value = settings.opener?.away || ''; }
         function resetSettingsForm() { if (!currentUser) return; document.getElementById('time-per-match').value = 10; document.getElementById('start-time').value = '20:00'; document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true); updateAdvancedOptions(); document.getElementById('opener-home').value = ''; document.getElementById('opener-away').value = ''; }
-        async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) { handleAuthError(error, 'ลบข้อมูล'); } else { alert('ลบข้อมูลเรียบร้อยแล้ว'); } } }
+        async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else alert('ลบข้อมูลเรียบร้อยแล้ว'); } }
         async function updateDateSelectors() { const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false }); if (error) return; const dates = datesData.map(d => d.match_date); const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')]; selectors.forEach(selector => { const currentVal = selector.value; selector.innerHTML = ''; if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); } if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; } else if (dates.length > 0) { selector.value = dates[0]; } }); selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; }); document.getElementById('delete-day-btn').onclick = deleteDay; }
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         function renderScoresPage(date) { const container = document.getElementById('scores-container'); document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน'; const dayData = appData[date]; if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; } const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`); const isReadOnly = !currentUser; container.innerHTML = schedule.map((match, index) => { const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' }; const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' }; const readonlyAttr = isReadOnly ? 'readonly' : ''; const disabledAttr = isReadOnly ? 'disabled' : ''; return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-score-wrapper"><div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button></div></div><div class="match-center-controls"><span class="vs">VS</span><button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button></div><div class="team-score-wrapper"><div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button></div></div></div></div>`; }).join(''); if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } }
