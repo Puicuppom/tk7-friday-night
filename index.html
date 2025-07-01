@@ -206,11 +206,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // ***** START: EDIT 1 - ENABLE SESSION PERSISTENCE *****
-        // เราได้ลบอ็อบเจ็กต์การตั้งค่า auth ออกไป เพื่อให้ Supabase ใช้ค่าเริ่มต้น
-        // ซึ่งจะเก็บ session ของผู้ใช้ไว้ใน localStorage ทำให้การล็อกอินค้างอยู่ได้
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        // ***** END: EDIT 1 *****
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -297,8 +293,6 @@
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
-            // ถ้ายังไม่มี session (INITIAL_SESSION) และยังไม่ได้ login ให้ไปหน้า schedule
-            // ถ้ามี session แล้ว (ล็อกอินค้างไว้) ให้ไปหน้า setup
             setActivePage(currentUser ? 'page-setup' : 'page-schedule');
         }
 
@@ -313,21 +307,7 @@
         }
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
-        
-        // ***** START: EDIT 2 - IMPROVE LOGOUT HANDLER *****
-        async function handleLogout() { 
-            const { error } = await db.auth.signOut(); 
-            if (error) { 
-                alert('ออกจากระบบไม่สำเร็จ: ' + error.message); 
-            } else {
-                 // เมื่อ signOut สำเร็จ onAuthStateChange จะถูกเรียกโดยอัตโนมัติ
-                // และจะจัดการกับการอัปเดต UI ทั้งหมด (เช่น ซ่อนปุ่ม logout, แสดงปุ่ม login, เปลี่ยนหน้า)
-                // จึงไม่จำเป็นต้องเขียนโค้ดเพิ่มเติมในส่วนนี้
-                console.log('ออกจากระบบสำเร็จ สถานะจะถูกรีเซ็ตโดย onAuthStateChange');
-            }
-        }
-        // ***** END: EDIT 2 *****
-
+        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
