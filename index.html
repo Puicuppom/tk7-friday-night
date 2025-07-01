@@ -206,8 +206,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // ใช้ค่าเริ่มต้นของ Supabase เพื่อเปิดใช้งาน Session Persistence
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -286,7 +285,6 @@
                 const isLoggedIn = !!currentUser;
                 toggleAdminView(isLoggedIn);
                 if (isLoggedIn) { userInfo.textContent = `👤 ${currentUser.email}`; loginModal.style.display = 'none'; }
-                // Load data on initial session or when auth state changes
                 if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { await loadInitialData(); }
             });
         }
@@ -295,7 +293,6 @@
             await updateDateSelectors(); 
             const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
-            // Default to setup page if logged in, otherwise schedule page
             setActivePage(currentUser ? 'page-setup' : 'page-schedule');
         }
 
@@ -310,18 +307,7 @@
         }
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
-        
-        async function handleLogout() {
-            const { error } = await db.auth.signOut();
-            if (error) {
-                alert('ออกจากระบบไม่สำเร็จ: ' + error.message);
-            } else {
-                // Force a full page reload to clear any stale state
-                // and ensure the app starts fresh.
-                window.location.reload();
-            }
-        }
-
+        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
