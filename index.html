@@ -228,6 +228,7 @@
         let currentUser = null;
         let isInitialSetupDone = false;
         let draggedItem = null;
+        let realtimeChannel = null; // Variable to hold the realtime subscription
 
         const pages = document.querySelectorAll('.page');
         const navButtons = document.querySelectorAll('.nav-btn');
@@ -262,12 +263,10 @@
             ]}]
         };
         
-        // Main initialization function
         async function init() {
             setupEventListeners();
             listenToRealtimeChanges();
 
-            // Setup the authentication state listener
             db.auth.onAuthStateChange(async (event, session) => {
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
@@ -280,26 +279,21 @@
                     loginModal.style.display = 'none';
                 }
 
-                // Run the full data load and page setup on initial load or when auth status changes.
                 if (event === 'INITIAL_SESSION' || wasLoggedIn !== isLoggedIn) {
                     await runInitialSetup();
                 }
             });
         }
         
-        // This function bundles the logic for the very first load or after an auth change.
         async function runInitialSetup() {
             await updateDateSelectors();
             const initialDate = document.getElementById('schedule-date-selector').value || new Date().toISOString().split('T')[0];
             await loadDataForDate(initialDate);
             
-            // This is the final step: decide which page to show and activate it.
-            // Activating the page will also trigger rendering all content.
             const targetPage = currentUser ? 'page-setup' : 'page-schedule';
             setActivePage(targetPage);
         }
 
-        // Sets up all user interaction event listeners.
         function setupEventListeners() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
@@ -314,9 +308,16 @@
             document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.querySelector('#team-select-modal .close-modal-btn').addEventListener('click', () => teamSelectModal.style.display = 'none');
             window.addEventListener('click', (event) => { if (event.target == loginModal || event.target == teamSelectModal) { event.target.style.display = "none"; } });
+
+            // Handles app visibility changes (e.g., user switches tabs or minimizes the app)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.log('App is visible again. Re-establishing realtime connection.');
+                    listenToRealtimeChanges();
+                }
+            });
         }
         
-        // Toggles visibility of admin-only UI elements. Does NOT render pages.
         function toggleAdminView(isLoggedIn) {
             loginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
             logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
@@ -336,7 +337,6 @@
             }
         }
         
-        // The single function responsible for showing a page and rendering all content.
         function setActivePage(pageId) {
             if (!currentUser && pageId === 'page-setup') {
                 loginModal.style.display = 'block';
@@ -348,11 +348,9 @@
             navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId));
             content.scrollTop = 0;
             
-            // This is now the main trigger for rendering content.
             renderAllPagesForDate(currentDateKey);
         }
 
-        // Fetches data for a specific date. Does NOT render pages.
         async function loadDataForDate(date) {
             currentDateKey = date;
             if(document.getElementById('match-date')) document.getElementById('match-date').value = date;
@@ -366,15 +364,12 @@
             }
         }
 
-        // Renders content for ALL pages. Called by setActivePage.
         function renderAllPagesForDate(date) {
             setupPageSetup(); 
             renderSchedulePage(date); 
             renderScoresPage(date); 
             renderLeaderboardPage(date); 
         }
-
-        // From here, the rest of the functions remain largely the same...
 
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
@@ -616,18 +611,33 @@
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
             } else { 
                 alert('สร้างตารางแข่งขันเรียบร้อยแล้ว!'); 
-                await loadDataForDate(date); 
-                setActivePage('page-schedule'); 
+                await runInitialSetup();
             }
         }
         
         function exportElementAsPNG(elementId, filename, buttonElement) { const element = document.getElementById(elementId); if (!element) return; const originalText = buttonElement.innerHTML; buttonElement.innerHTML = '⌛ กำลังสร้าง...'; buttonElement.disabled = true; html2canvas(element, { backgroundColor: '#121212', useCORS: true, scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = filename; link.href = canvas.toDataURL('image/png'); link.click(); }).catch(err => { console.error('oops, something went wrong!', err); alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ'); }).finally(() => { buttonElement.innerHTML = originalText; buttonElement.disabled = false; }); }
-        function listenToRealtimeChanges() { db.channel('match_days_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => { console.log('Realtime Change received!', payload); const currentSelectedDate = document.getElementById('schedule-date-selector').value; await updateDateSelectors(); await loadDataForDate(currentSelectedDate || new Date().toISOString().split('T')[0]); renderAllPagesForDate(currentDateKey); }).subscribe(); }
+        
+        function listenToRealtimeChanges() {
+            if (realtimeChannel) {
+                db.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+            realtimeChannel = db.channel('match_days_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => {
+                    console.log('Realtime Change received!', payload);
+                    const currentSelectedDate = document.getElementById('schedule-date-selector').value;
+                    await updateDateSelectors();
+                    await loadDataForDate(currentSelectedDate || new Date().toISOString().split('T')[0]);
+                    renderAllPagesForDate(currentDateKey);
+                })
+                .subscribe();
+        }
+
         function setupNavigation() { navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); }); }
         
         function loadSettingsFromData(settings) { if (!settings || !currentUser) return; document.getElementById('time-per-match').value = settings.timePerMatch || 10; document.getElementById('start-time').value = settings.startTime || '20:00'; document.querySelectorAll('.team-switch').forEach(sw => { const teamSlug = sw.dataset.teamSlug; sw.checked = settings.activeTeams ? settings.activeTeams.includes(teamSlug) : true; }); updateAdvancedOptions(); document.getElementById('opener-home').value = settings.opener?.home || ''; document.getElementById('opener-away').value = settings.opener?.away || ''; }
         function resetSettingsForm() { if (!currentUser) return; document.getElementById('time-per-match').value = 10; document.getElementById('start-time').value = '20:00'; document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true); updateAdvancedOptions(); document.getElementById('opener-home').value = ''; document.getElementById('opener-away').value = ''; }
-        async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else alert('ลบข้อมูลเรียบร้อยแล้ว'); } }
+        async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else { alert('ลบข้อมูลเรียบร้อยแล้ว'); await runInitialSetup(); } } }
         async function updateDateSelectors() { const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false }); if (error) return; const dates = datesData.map(d => d.match_date); const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')]; selectors.forEach(selector => { const currentVal = selector.value; selector.innerHTML = ''; if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); } if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; } else if (dates.length > 0) { selector.value = dates[0]; } }); selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate).then(() => renderAllPagesForDate(newDate)); }; }); document.getElementById('delete-day-btn').onclick = deleteDay; }
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         function renderScoresPage(date) { const container = document.getElementById('scores-container'); document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน'; const dayData = appData[date]; if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; } const { schedule, settings } = dayData; const startTime = new Date(`${date}T${settings.startTime}`); const isReadOnly = !currentUser; container.innerHTML = schedule.map((match, index) => { const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000); const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' }; const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' }; const readonlyAttr = isReadOnly ? 'readonly' : ''; const disabledAttr = isReadOnly ? 'disabled' : ''; return `<div class="card match-card"><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div><div class="match-body"><div class="team-score-wrapper"><div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button></div></div><div class="match-center-controls"><span class="vs">VS</span><button class="reset-score-btn" data-index="${index}" ${disabledAttr}>🔁</button></div><div class="team-score-wrapper"><div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div><div class="score-control"><button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button><input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}><button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button></div></div></div></div>`; }).join(''); if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } }
@@ -638,7 +648,6 @@
         function resetScore(event) { const { index } = event.currentTarget.dataset; updateScore(index, 'home', null); updateScore(index, 'away', null); }
         function calculateLeaderboard(date) { const dayData = appData[date]; if (!dayData || !dayData.schedule) return {}; const stats = {}; dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); if(teamInfo) { stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; }}); dayData.schedule.forEach(match => { const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return; stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore; if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; } }); Object.values(stats).forEach(team => { team.gd = team.gf - team.ga; }); return stats; }
 
-        // Start the application
         init();
     });
     </script>
