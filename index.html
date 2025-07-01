@@ -50,7 +50,6 @@
         .btn-primary { background-color: var(--primary-color); color: #000; } .btn-primary:hover { background-color: #c8a2ff; }
         .btn-secondary { background-color: var(--secondary-color); color: #000; } .btn-secondary:hover { background-color: #66fff9; }
         .btn-danger { background-color: var(--team-red); color: var(--text-color); } .btn-danger:hover { background-color: #e57373; }
-        .btn:disabled { background-color: #555; cursor: not-allowed; }
         .team-emblem { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); box-shadow: inset 0 0 10px rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); min-width: 120px; }
         .team-emblem.clickable-team { cursor: pointer; transition: background-color 0.2s; }
         .team-emblem.clickable-team:hover { filter: brightness(1.2); }
@@ -207,8 +206,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        // Set up Supabase client to persist session (stay logged in)
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -239,7 +237,6 @@
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const teamSelectModal = document.getElementById('team-select-modal');
-        const loginForm = document.getElementById('login-form');
         
         const MASTER_TEMPLATES = {
             '6-teams': [{ name: '6 ทีม', data: [
@@ -268,7 +265,7 @@
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
-            loginForm.addEventListener('submit', handleLogin);
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
             
             document.getElementById('export-schedule-btn').addEventListener('click', (e) => exportElementAsPNG('schedule-container', `TK7-Schedule-${currentDateKey}.png`, e.currentTarget));
             document.getElementById('export-scores-btn').addEventListener('click', (e) => exportElementAsPNG('scores-container', `TK7-Scores-${currentDateKey}.png`, e.currentTarget));
@@ -309,48 +306,8 @@
             renderAllPagesForDate(currentDateKey);
         }
 
-        // [MODIFIED] Added custom error message and button loading state.
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const loginSubmitBtn = loginForm.querySelector('button[type="submit"]');
-            const originalBtnText = loginSubmitBtn.textContent;
-            
-            loginSubmitBtn.disabled = true;
-            loginSubmitBtn.textContent = 'กำลังตรวจสอบ...';
-
-            const { error } = await db.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                if (error.message === "Invalid login credentials") {
-                    alert('อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
-                } else {
-                    alert('เกิดข้อผิดพลาดในการเข้าระบบ: ' + error.message);
-                }
-                // Reset button state on failure
-                loginSubmitBtn.disabled = false;
-                loginSubmitBtn.textContent = originalBtnText;
-            }
-            // On success, the onAuthStateChange listener will handle closing the modal.
-        }
-        
-        async function handleLogout() {
-            logoutBtn.disabled = true;
-            logoutBtn.textContent = 'กำลังออก...';
-
-            try {
-                const { error } = await db.auth.signOut();
-                if (error) {
-                    console.error("Supabase sign out error:", error.message);
-                }
-            } catch (e) {
-                console.error("Network or other error during sign out:", e.message);
-            } finally {
-                location.reload();
-            }
-        }
-        
+        async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
+        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
