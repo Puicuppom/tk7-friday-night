@@ -179,7 +179,6 @@
         </nav>
     </div>
     
-    <!-- Restored to original version to allow browser autofill -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn">×</span>
@@ -270,15 +269,25 @@
             ]}]
         };
 
+        // ***** START: UPGRADED ERROR HANDLER *****
         function handleAuthError(error, operationName = 'ดำเนินการ') {
-            if (error && (error.message.includes('JWT expired') || error.status === 401)) {
-                alert('เซสชันของคุณหมดอายุ กรุณาเข้าระบบใหม่อีกครั้งเพื่อดำเนินการต่อ');
+            const shouldReload = error && (
+                error.status === 401 || 
+                error.message.includes('JWT expired') ||
+                error.message.toLowerCase().includes('network error') ||
+                error.message.toLowerCase().includes('failed to fetch')
+            );
+
+            if (shouldReload) {
+                alert(`การเชื่อมต่อหรือเซสชันมีปัญหา (${error.message})\nกำลังรีเฟรชหน้าเว็บเพื่อเชื่อมต่อใหม่...`);
                 location.reload();
                 return true;
             }
+            
             alert(`เกิดข้อผิดพลาดในการ${operationName}: ` + error.message);
             return false;
         }
+        // ***** END: UPGRADED ERROR HANDLER *****
         
         async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
@@ -410,7 +419,7 @@
                 
                 container.querySelectorAll('.match-card.draggable').forEach(card => {
                     const originalIndex = parseInt(card.dataset.index);
-                    const matchData = originalSchedule.find((m, i) => i === originalIndex);
+                    const matchData = originalSchedule[originalIndex];
                     if (matchData) {
                         reorderedSchedule.push(matchData);
                     }
