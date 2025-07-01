@@ -84,14 +84,12 @@
         .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
         .num-stepper-btn:hover { background-color: #444; }
         .match-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-        /* START: CHANGE 2 - แก้ไขการจัดวางแนวตั้งของปุ่ม */
         #page-scores .match-body { 
             display: flex; 
             justify-content: space-between; 
-            align-items: flex-end; /* เปลี่ยนจาก center เป็น flex-end เพื่อจัดชิดล่าง */
+            align-items: flex-end;
             gap: 8px; 
         }
-        /* END: CHANGE 2 */
         .team-score-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; min-width: 0; }
         .match-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
         .score-control { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 150px; }
@@ -100,17 +98,25 @@
         .score-input { width: 100%; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
         .score-input:read-only { background-color: #2a2a2a; cursor: default; }
         .score-btn:disabled, .reset-score-btn:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; }
-        /* START: CHANGE 1 - แก้ไขการจัดกึ่งกลางไอคอน */
         .reset-score-btn { 
-            width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; 
+            width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; 
             background-color: #333; color: var(--text-color); 
             display: flex; align-items: center; justify-content: center; 
             transition: transform 0.2s, background-color 0.2s; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.4); 
-            line-height: 1; /* เพิ่มบรรทัดนี้เพื่อช่วยจัดกึ่งกลาง */
+        }
+        .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); background-color: #444; }
+        /* START: CHANGE 1 - เพิ่ม Style สำหรับ SVG Icon */
+        .reset-score-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor; /* ให้สีของ SVG เหมือนสีตัวอักษรของปุ่ม */
+            transition: transform 0.2s;
+        }
+        .reset-score-btn:hover:not(:disabled) svg {
+             transform: rotate(-90deg);
         }
         /* END: CHANGE 1 */
-        .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); background-color: #444; }
         .vs { margin: 0; font-size: 20px; color: var(--text-muted); font-weight: 700; }
         #auth-section { padding: 10px 15px; text-align: right; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); }
         #auth-section button { 
@@ -171,6 +177,7 @@
 <body>
 
     <div id="app">
+        <!-- ... ส่วนอื่น ๆ ของ HTML เหมือนเดิม ... -->
         <div id="auth-section">
             <span id="user-info"></span>
             <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
@@ -259,7 +266,6 @@
             <div id="team-select-modal-list"></div>
         </div>
     </div>
-
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -696,6 +702,9 @@
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' }; 
                 const readonlyAttr = isReadOnly ? 'readonly' : ''; 
                 const disabledAttr = isReadOnly ? 'disabled' : ''; 
+
+                // START: CHANGE 2 - เปลี่ยนไปใช้ SVG Icon
+                const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"/></svg>`;
                 return `<div class="card match-card">
                             <div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div>
                             <div class="match-body">
@@ -709,7 +718,7 @@
                                 </div>
                                 <div class="match-center-controls">
                                     <span class="vs">VS</span>
-                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>⟳</button>
+                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>${svgIcon}</button>
                                 </div>
                                 <div class="team-score-wrapper">
                                     <div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div>
@@ -720,7 +729,8 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>`; 
+                        </div>`;
+                // END: CHANGE 2 
             }).join(''); 
             if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } 
         }
