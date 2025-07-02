@@ -274,16 +274,16 @@
         // START: CHANGE 1 - ตั้งค่า Supabase client ให้จำ session (สำคัญมาก)
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: {
-                persistSession: true,
+                persistSession: true, // ทำให้ปิด-เปิดแอป หรือพับจอแล้วยังอยู่
                 autoRefreshToken: true,
                 detectSessionInUrl: true
             }
         });
         
-        // START: CHANGE 2 - ตรวจสอบประเภทการโหลดหน้าเว็บ
-        // API นี้จะบอกว่าหน้าเว็บโหลดมาด้วยวิธีไหน ('navigate', 'reload', 'back_forward')
-        const navEntries = performance.getEntriesByType("navigation");
-        const isHardRefresh = navEntries.length > 0 && navEntries[0].type === 'reload';
+        // START: CHANGE 2 - สร้าง flag ใน sessionStorage เพื่อติดตามสถานะ
+        // sessionStorage จะหายไปเมื่อปิดแท็บ แต่จะไม่หายเมื่อรีเฟรช
+        const hasLoadedBeforeInTab = sessionStorage.getItem('tabHasLoaded');
+        sessionStorage.setItem('tabHasLoaded', 'true'); // ตั้งค่าทุกครั้งที่โหลด
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -357,17 +357,18 @@
 
             listenToRealtimeChanges();
 
-            // START: CHANGE 3 - ย้ายตรรกะทั้งหมดมาไว้ที่นี่
+            // START: CHANGE 3 - ปรับปรุง onAuthStateChange ให้จัดการ Refresh
             db.auth.onAuthStateChange(async (event, session) => {
-                // ตรวจสอบเงื่อนไขการ Refresh เฉพาะตอนโหลด session ครั้งแรกเท่านั้น
-                if (event === 'INITIAL_SESSION' && session && isHardRefresh) {
-                    console.log("Hard refresh detected with an active session. Signing out.");
-                    // ทำการ signOut แล้วจบฟังก์ชันนี้ไปเลย
-                    // onAuthStateChange จะถูกเรียกอีกครั้งด้วย event 'SIGNED_OUT'
+                // ถ้ามี session, แต่ flag บอกว่านี่คือการ Refresh
+                if (session && hasLoadedBeforeInTab) {
+                    console.log("Refresh detected with an active session. Signing out.");
+                    sessionStorage.removeItem('tabHasLoaded'); // เคลียร์ flag ก่อน
                     await db.auth.signOut();
+                    // จบการทำงานไปเลย, onAuthStateChange จะถูกเรียกอีกรอบด้วยสถานะ SIGNED_OUT
                     return; 
                 }
 
+                // การทำงานปกติ
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
                 const isLoggedIn = !!currentUser;
@@ -379,7 +380,6 @@
                     loginModal.style.display = 'none'; 
                 }
                 
-                // โหลดข้อมูลเมื่อมีการเปลี่ยนแปลงสถานะที่สำคัญ
                 if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || (wasLoggedIn !== isLoggedIn)) {
                     await loadInitialData(); 
                 }
@@ -404,15 +404,24 @@
             renderAllPagesForDate(currentDateKey);
         }
 
-        async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
+        // START: CHANGE 4 - ปรับปรุง handleLogin และ handleLogout
+        async function handleLogin(e) {
+            e.preventDefault();
+            sessionStorage.removeItem('tabHasLoaded'); // เคลียร์ flag ก่อน login
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const { error } = await db.auth.signInWithPassword({ email, password });
+            if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
+        }
         
         async function handleLogout() { 
+            sessionStorage.removeItem('tabHasLoaded'); // เคลียร์ flag ก่อน logout
             const { error } = await db.auth.signOut(); 
             if (error) { 
                 alert('ออกจากระบบไม่สำเร็จ: ' + error.message); 
             }
-            // ไม่ต้อง reload แล้ว เพราะ onAuthStateChange จะจัดการ UI ให้เอง
         }
+        // END: CHANGE 4
 
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
