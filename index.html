@@ -93,7 +93,30 @@
         .team-score-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; min-width: 0; }
         .match-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
         .score-control { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 150px; }
-        .score-btn { width: 40px; height: 40px; border-radius: 8px; border: none; font-size: 24px; font-weight: 700; cursor: pointer; background-color: #333; color: var(--text-color); transition: background-color 0.2s; flex-shrink: 0; }
+        
+        /* START: CHANGE 1 - ปรับ Style ของ .score-btn */
+        .score-btn { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; /* ทำให้เป็นวงกลม */
+            border: none; 
+            cursor: pointer; 
+            background-color: #333; 
+            color: var(--text-color); 
+            transition: background-color 0.2s; 
+            flex-shrink: 0;
+            display: flex; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            align-items: center; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            justify-content: center; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            padding: 0; /* เอา padding ออกเพื่อไม่ให้กระทบการจัดกลาง */
+        }
+        .score-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor; /* ทำให้สี SVG เหมือนสีของปุ่ม */
+        }
+        /* END: CHANGE 1 */
+
         .score-btn:hover:not(:disabled) { background-color: #444; }
         .score-input { width: 100%; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
         .score-input:read-only { background-color: #2a2a2a; cursor: default; }
@@ -106,17 +129,15 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.4); 
         }
         .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); background-color: #444; }
-        /* START: CHANGE 1 - เพิ่ม Style สำหรับ SVG Icon */
         .reset-score-btn svg {
             width: 22px;
             height: 22px;
-            fill: currentColor; /* ให้สีของ SVG เหมือนสีตัวอักษรของปุ่ม */
+            fill: currentColor;
             transition: transform 0.2s;
         }
         .reset-score-btn:hover:not(:disabled) svg {
              transform: rotate(-90deg);
         }
-        /* END: CHANGE 1 */
         .vs { margin: 0; font-size: 20px; color: var(--text-muted); font-weight: 700; }
         #auth-section { padding: 10px 15px; text-align: right; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); }
         #auth-section button { 
@@ -687,11 +708,18 @@
         async function updateDateSelectors() { const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false }); if (error) return; const dates = datesData.map(d => d.match_date); const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')]; selectors.forEach(selector => { const currentVal = selector.value; selector.innerHTML = ''; if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); } if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; } else if (dates.length > 0) { selector.value = dates[0]; } }); selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; }); document.getElementById('delete-day-btn').onclick = deleteDay; }
         function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         
+        /* START: CHANGE 2 - ปรับปรุง renderScoresPage ให้ใช้ SVG */
         function renderScoresPage(date) { 
             const container = document.getElementById('scores-container'); 
             document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน'; 
             const dayData = appData[date]; 
             if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; } 
+            
+            // สร้าง SVG Icons เป็นตัวแปร
+            const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
+            const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
+            const svgReset = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"/></svg>`;
+
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`); 
             const isReadOnly = !currentUser; 
@@ -703,37 +731,35 @@
                 const readonlyAttr = isReadOnly ? 'readonly' : ''; 
                 const disabledAttr = isReadOnly ? 'disabled' : ''; 
 
-                // START: CHANGE 2 - เปลี่ยนไปใช้ SVG Icon
-                const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"/></svg>`;
                 return `<div class="card match-card">
                             <div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div>
                             <div class="match-body">
                                 <div class="team-score-wrapper">
                                     <div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div>
                                     <div class="score-control">
-                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>-</button>
+                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>${svgMinus}</button>
                                         <input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}>
-                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>+</button>
+                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>${svgPlus}</button>
                                     </div>
                                 </div>
                                 <div class="match-center-controls">
                                     <span class="vs">VS</span>
-                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>${svgIcon}</button>
+                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>${svgReset}</button>
                                 </div>
                                 <div class="team-score-wrapper">
                                     <div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div>
                                     <div class="score-control">
-                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>-</button>
+                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>${svgMinus}</button>
                                         <input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}>
-                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>+</button>
+                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>${svgPlus}</button>
                                     </div>
                                 </div>
                             </div>
                         </div>`;
-                // END: CHANGE 2 
             }).join(''); 
             if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } 
         }
+        /* END: CHANGE 2 */
 
         function renderLeaderboardPage(date) { const container = document.getElementById('leaderboard-container'); const dayData = appData[date]; if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', '📊'); return; } const stats = calculateLeaderboard(date); const sortedTeams = Object.values(stats).sort((a, b) => { if (b.pts !== a.pts) return b.pts - a.pts; if (b.gd !== a.gd) return b.gd - a.gd; if (b.gf !== a.gf) return b.gf - a.gf; return a.name.localeCompare(b.name); }); const medals = ['🥇', '🥈', '🥉']; container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`; }
         async function updateScore(index, team, value) { if (!currentUser) return; const date = currentDateKey; let dayData = appData[date]; if (!dayData) return; const newSchedule = [...dayData.schedule]; const match = newSchedule[index]; if (team === 'home') match.homeScore = value; else match.awayScore = value; updateScheduleInDB(newSchedule); }
