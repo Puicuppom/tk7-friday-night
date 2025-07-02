@@ -106,17 +106,15 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.4); 
         }
         .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); background-color: #444; }
-        /* START: CHANGE 1 - เพิ่ม Style สำหรับ SVG Icon */
         .reset-score-btn svg {
             width: 22px;
             height: 22px;
-            fill: currentColor; /* ให้สีของ SVG เหมือนสีตัวอักษรของปุ่ม */
+            fill: currentColor; 
             transition: transform 0.2s;
         }
         .reset-score-btn:hover:not(:disabled) svg {
              transform: rotate(-90deg);
         }
-        /* END: CHANGE 1 */
         .vs { margin: 0; font-size: 20px; color: var(--text-muted); font-weight: 700; }
         #auth-section { padding: 10px 15px; text-align: right; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); }
         #auth-section button { 
@@ -177,7 +175,6 @@
 <body>
 
     <div id="app">
-        <!-- ... ส่วนอื่น ๆ ของ HTML เหมือนเดิม ... -->
         <div id="auth-section">
             <span id="user-info"></span>
             <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
@@ -273,7 +270,20 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1ZHd0cGJvanF2bm91ZXlydnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2MjgzOTcsImV4cCI6MjA2NTIwNDM5N30.FYUZ732McidFHjGxGmQSThPhhrQHqI2A1756cRCqpQY';
 
         const { createClient } = supabase;
-        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+
+        // START: CHANGE 1 - ตั้งค่า Supabase client ให้จำ session ข้ามการปิด-เปิดเบราว์เซอร์
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true
+            }
+        });
+        
+        // START: CHANGE 2 - เตรียมตัวแปรสำหรับตรวจจับการ Refresh
+        const isPageRefreshed = sessionStorage.getItem('isPageLoadedInTab');
+        sessionStorage.setItem('isPageLoadedInTab', 'true');
+        // END: CHANGE 2
         
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
@@ -304,6 +314,7 @@
         const userInfo = document.getElementById('user-info');
         const loginModal = document.getElementById('login-modal');
         const teamSelectModal = document.getElementById('team-select-modal');
+        const loginForm = document.getElementById('login-form');
         
         const MASTER_TEMPLATES = {
             '6-teams': [{ name: '6 ทีม', data: [
@@ -346,14 +357,34 @@
 
             listenToRealtimeChanges();
 
+            // START: CHANGE 3 - ย้ายตรรกะการตรวจจับ Refresh มาไว้ใน onAuthStateChange
             db.auth.onAuthStateChange(async (event, session) => {
+                // ตรวจสอบเงื่อนไขการ Refresh เฉพาะตอนโหลด session ครั้งแรกเท่านั้น
+                if (event === 'INITIAL_SESSION' && session && isPageRefreshed) {
+                    console.log("Refresh detected with an active session. Signing out.");
+                    await db.auth.signOut();
+                    // จบการทำงานของฟังก์ชันนี้ไปก่อน, การ signOut() จะ trigger event ใหม่ (SIGNED_OUT)
+                    // ซึ่งจะมาทำงานใน onAuthStateChange รอบถัดไปและจัดการ UI อย่างถูกต้อง
+                    return; 
+                }
+
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
                 const isLoggedIn = !!currentUser;
+                
                 toggleAdminView(isLoggedIn);
-                if (isLoggedIn) { userInfo.textContent = `👤 ${currentUser.email}`; loginModal.style.display = 'none'; }
-                if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { await loadInitialData(); }
+
+                if (isLoggedIn) { 
+                    userInfo.textContent = `👤 ${currentUser.email}`; 
+                    loginModal.style.display = 'none'; 
+                }
+                
+                // โหลดข้อมูลเมื่อมีการเปลี่ยนแปลงสถานะที่สำคัญเท่านั้น
+                if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || (wasLoggedIn !== isLoggedIn)) {
+                    await loadInitialData(); 
+                }
             });
+            // END: CHANGE 3
         }
         
         async function loadInitialData() {
@@ -374,7 +405,19 @@
         }
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
-        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
+        
+        // START: CHANGE 4 - เพิ่มการล้าง sessionStorage เมื่อกด Logout เอง
+        async function handleLogout() { 
+            sessionStorage.removeItem('isPageLoadedInTab'); // ล้างค่า flag ก่อน เพื่อให้การเปิดครั้งต่อไปไม่นับว่าเป็นการรีเฟรช
+            const { error } = await db.auth.signOut(); 
+            if (error) { 
+                alert('ออกจากระบบไม่สำเร็จ: ' + error.message); 
+            } else { 
+                if(loginForm) loginForm.reset(); 
+            } 
+        }
+        // END: CHANGE 4
+
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
@@ -703,7 +746,6 @@
                 const readonlyAttr = isReadOnly ? 'readonly' : ''; 
                 const disabledAttr = isReadOnly ? 'disabled' : ''; 
 
-                // START: CHANGE 2 - เปลี่ยนไปใช้ SVG Icon
                 const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"/></svg>`;
                 return `<div class="card match-card">
                             <div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span></div>
@@ -730,7 +772,6 @@
                                 </div>
                             </div>
                         </div>`;
-                // END: CHANGE 2 
             }).join(''); 
             if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } 
         }
