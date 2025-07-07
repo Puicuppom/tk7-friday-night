@@ -31,18 +31,14 @@
         .page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         h1, h2 { text-align: center; margin-bottom: 25px; color: var(--secondary-color); display: flex; align-items: center; justify-content: center; gap: 10px; }
-        h1 .icon-header, h2 .icon-header { width: 32px; height: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .page-header h1 { margin-bottom: 0; flex-grow: 1; }
-        .export-btn, .delete-day-btn, #login-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .export-btn svg, .delete-day-btn svg, #login-btn svg, .delete-match-btn svg, #add-match-btn svg { width: 18px; height: 18px; }
-        .export-btn { background-color: var(--primary-variant); color: var(--text-color); border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-family: 'Kanit', sans-serif; cursor: pointer; transition: background-color 0.2s; }
+        .export-btn { background-color: var(--primary-variant); color: var(--text-color); border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-family: 'Kanit', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background-color 0.2s; }
         .export-btn:hover { background-color: #4a00e0; }
         .export-btn:disabled { background-color: #555; cursor: not-allowed; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-around; background-color: var(--surface-color); border-top: 1px solid var(--border-color); box-shadow: 0 -5px 15px var(--shadow-color); z-index: 1000; }
         .nav-btn { flex-grow: 1; padding: 10px 5px; background: none; border: none; color: var(--text-muted); font-family: 'Kanit', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .nav-btn .icon { width: 32px; height: 32px; transition: all 0.2s ease; }
-        .nav-btn.active .icon, .nav-btn:hover .icon { transform: scale(1.1) translateY(-2px); filter: drop-shadow(0 4px 8px rgba(3, 218, 198, 0.4)); }
+        .nav-btn .icon { font-size: 24px; }
         .nav-btn.active, .nav-btn:hover { color: var(--secondary-color); background-color: rgba(3, 218, 198, 0.1); }
         .card { background-color: var(--surface-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px var(--shadow-color); }
@@ -72,83 +68,155 @@
         .leaderboard-table td.team-name { text-align: left; font-weight: 600; }
         .date-selector-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .date-selector-container select { flex-grow: 1; }
-        .delete-day-btn { padding: 10px 15px; background-color: var(--team-red); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .delete-day-btn { padding: 0 15px; background-color: var(--team-red); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 20px; }
         #no-data-message { text-align: center; padding: 40px 20px; color: var(--text-muted); }
-        #no-data-message .icon { margin-bottom: 16px; }
-        #no-data-message .icon svg { width: 80px; height: 80px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));}
+        #no-data-message .icon { font-size: 48px; margin-bottom: 16px; }
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s; }
         .modal-content { background-color: var(--surface-color); margin: 15% auto; padding: 20px; border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 500px; position: relative; box-shadow: 0 10px 30px var(--shadow-color); }
         .close-modal-btn { color: var(--text-muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
         .close-modal-btn:hover, .close-modal-btn:focus { color: var(--text-color); }
         #modal-match-info { margin-bottom: 15px; color: var(--text-muted); text-align: center; }
         .match-actions { margin-left: auto; }
-        .delete-match-btn { background-color: transparent; border: none; cursor: pointer; padding: 4px; color: #ff7575; opacity: 0.8; }
-        .delete-match-btn:hover { opacity: 1; transform: scale(1.1); color: #ff8f8f; }
-        .delete-match-btn svg { width: 22px; height: 22px; }
+        .delete-match-btn { background-color: transparent; border: none; cursor: pointer; font-size: 18px; padding: 4px; color: var(--team-red); opacity: 0.7; }
+        .delete-match-btn:hover { opacity: 1; }
         .custom-number-input { display: flex; align-items: center; gap: 5px; }
         .custom-number-input input { text-align: center; flex-grow: 1; }
-        .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+        .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
         .num-stepper-btn:hover { background-color: #444; }
-        .num-stepper-btn svg { width: 24px; height: 24px; }
         .match-body { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-        #page-scores .match-body { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+        #page-scores .match-body { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end;
+            gap: 8px; 
+        }
         .team-score-wrapper { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1; min-width: 0; }
         .match-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
         .score-control { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 150px; }
-        .score-btn { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; background-color: #333; color: var(--text-color); transition: background-color 0.2s, transform 0.1s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
-        .score-btn svg { width: 24px; height: 24px; }
+        
+        /* START: CHANGE 1 - ปรับ Style ของ .score-btn */
+        .score-btn { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; /* ทำให้เป็นวงกลม */
+            border: none; 
+            cursor: pointer; 
+            background-color: #333; 
+            color: var(--text-color); 
+            transition: background-color 0.2s; 
+            flex-shrink: 0;
+            display: flex; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            align-items: center; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            justify-content: center; /* เพิ่มเพื่อให้จัดกลาง SVG */
+            padding: 0; /* เอา padding ออกเพื่อไม่ให้กระทบการจัดกลาง */
+        }
+        .score-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor; /* ทำให้สี SVG เหมือนสีของปุ่ม */
+        }
+        /* END: CHANGE 1 */
+
         .score-btn:hover:not(:disabled) { background-color: #444; }
-        .score-btn:active:not(:disabled) { transform: scale(0.9); }
         .score-input { width: 100%; height: 40px; text-align: center; font-size: 20px; font-weight: 700; }
         .score-input:read-only { background-color: #2a2a2a; cursor: default; }
         .score-btn:disabled, .reset-score-btn:disabled { background-color: #2a2a2a; color: #666; cursor: not-allowed; }
-        .reset-score-btn { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; background-color: #333; color: var(--text-color); display: flex; align-items: center; justify-content: center; transition: transform 0.2s, background-color 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .reset-score-btn { 
+            width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; 
+            background-color: #333; color: var(--text-color); 
+            display: flex; align-items: center; justify-content: center; 
+            transition: transform 0.2s, background-color 0.2s; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4); 
+        }
         .reset-score-btn:hover:not(:disabled) { transform: scale(1.1); background-color: #444; }
-        .reset-score-btn svg { width: 22px; height: 22px; transition: transform 0.2s; }
-        .reset-score-btn:hover:not(:disabled) svg { transform: rotate(-90deg); }
+        .reset-score-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+            transition: transform 0.2s;
+        }
+        .reset-score-btn:hover:not(:disabled) svg {
+             transform: rotate(-90deg);
+        }
         .vs { margin: 0; font-size: 20px; color: var(--text-muted); font-weight: 700; }
         #auth-section { padding: 10px 15px; text-align: right; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); }
-        #auth-section button { padding: 8px 15px; font-size: 14px; width: auto; vertical-align: middle; border-radius: 8px; border: 1px solid rgba(0,0,0,0.2); border-bottom: 3px solid rgba(0,0,0,0.4); text-shadow: 0px 1px 2px rgba(0,0,0,0.2); transition: all 0.15s ease-out; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        #auth-section button:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-        #auth-section button:active { transform: translateY(1px); border-bottom-width: 1px; box-shadow: none; }
-        #user-info { margin-right: 15px; vertical-align: middle; color: var(--text-muted); display: inline-flex; align-items: center; gap: 8px; }
-        #user-info svg { width: 20px; height: 20px; }
-        #add-match-btn { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        #auth-section button { 
+            padding: 8px 15px; font-size: 14px; width: auto; vertical-align: middle;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.2);
+            border-bottom: 3px solid rgba(0,0,0,0.4);
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.2);
+            transition: all 0.15s ease-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #auth-section button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        #auth-section button:active {
+            transform: translateY(1px);
+            border-bottom-width: 1px;
+            box-shadow: none;
+        }
+        #user-info { margin-right: 15px; vertical-align: middle; color: var(--text-muted); }
+        #add-match-btn { margin-top: 20px; }
         #team-select-modal-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 20px; }
         #team-select-modal-list .team-emblem { cursor: pointer; }
         .match-card.draggable { cursor: move; }
         .match-card.dragging { opacity: 0.5; background: var(--primary-variant); }
         .drag-over-placeholder { background: rgba(3, 218, 198, 0.1); border: 2px dashed var(--secondary-color); border-radius: 12px; margin-bottom: 16px; height: 120px; }
-        .toast-notification { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background-color: var(--secondary-color); color: #000; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; z-index: 3000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: toast-in 0.3s ease-out forwards; opacity: 0; }
-        .toast-notification.fade-out { animation: toast-out 0.5s ease-in forwards; }
-        @keyframes toast-in { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-        @keyframes toast-out { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, 20px); opacity: 0; } }
+        .toast-notification {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--secondary-color);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 3000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            animation: toast-in 0.3s ease-out forwards;
+            opacity: 0;
+        }
+        .toast-notification.fade-out {
+            animation: toast-out 0.5s ease-in forwards;
+        }
+        @keyframes toast-in {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        @keyframes toast-out {
+            from { transform: translate(-50%, 0); opacity: 1; }
+            to { transform: translate(-50%, 20px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
     <div id="app">
+        <!-- ... ส่วนอื่น ๆ ของ HTML เหมือนเดิม ... -->
         <div id="auth-section">
             <span id="user-info"></span>
-            <button id="login-btn" class="btn-secondary">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_120)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_120)"></rect><path d="M16 9.5V8.5C16 6.01472 14.2091 4 12 4C9.79086 4 8 6.01472 8 8.5V9.5M6 9.5H18V18.5C18 19.0523 17.5523 19.5 17 19.5H7C6.44772 19.5 6 19.0523 6 18.5V9.5Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_120" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_120"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_120" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_120" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#03DAC6"></stop><stop offset="1" stop-color="#018786"></stop></linearGradient></defs></svg>
-                เข้าระบบผู้ดูแล
-            </button>
+            <button id="login-btn" class="btn-secondary">🔐 เข้าระบบผู้ดูแล</button>
             <button id="logout-btn" class="btn-danger">ออกจากระบบ</button>
         </div>
 
         <main id="content">
             <div id="page-setup" class="page">
                 <div id="setup-content-wrapper">
-                    <div class="page-header"><h1><span id="setup-page-icon" class="icon-header"></span>ตั้งค่าการแข่งขัน</h1></div>
+                    <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
                     <div class="card">
                         <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
                         <div class="form-group">
                             <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
                             <div class="custom-number-input">
-                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,13H5V11H19V13Z" /></svg></button>
+                                <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
                                 <input type="number" id="time-per-match" value="9" step="1" min="1">
-                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" /></svg></button>
+                                <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
                             </div>
                         </div>
                         <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
@@ -174,36 +242,36 @@
             </div>
             
             <div id="page-schedule" class="page">
-                <div class="page-header"><h1><span id="schedule-page-icon" class="icon-header"></span>ตารางการแข่งขัน</h1><button id="export-schedule-btn" class="export-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_114)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_114)"></rect><path d="M15 11C15 12.6569 13.6569 14 12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11Z" stroke="white" stroke-width="1.5"></path><path d="M7 6.5H17V16.5C17 17.0523 16.5523 17.5 16 17.5H8C7.44772 17.5 7 17.0523 7 16.5V6.5Z" stroke="white" stroke-width="1.5"></path></g><defs><filter id="filter0_d_1_114" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_114"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_114" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_114" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#BB86FC"></stop><stop offset="1" stop-color="#7B1FA2"></stop></linearGradient></defs></svg>Export</button></div>
-                <div class="date-selector-container"><select id="schedule-date-selector"></select><button id="delete-day-btn" class="delete-day-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_117)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_117)"></rect><path d="M7 6H17M9 6V5C9 4.44772 9.44772 4 10 4H14C14.5523 4 15 4.44772 15 5V6M16 6V17C16 17.5523 15.5523 18 15 18H9C8.44772 18 8 17.5523 8 17V6H16Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_117" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0.815686 0 0 0 0 0.184314 0 0 0 0 0.184314 0 0 0 1 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_117"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_117" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_117" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#D32F2F"></stop><stop offset="1" stop-color="#B71C1C"></stop></linearGradient></defs></svg>ลบวัน</button></div>
+                <div class="page-header"><h1>📅 ตารางการแข่งขัน</h1><button id="export-schedule-btn" class="export-btn">📸 Export</button></div>
+                <div class="date-selector-container"><select id="schedule-date-selector"></select><button id="delete-day-btn" class="delete-day-btn">🗑️</button></div>
                 <div id="schedule-container"></div>
             </div>
 
             <div id="page-scores" class="page">
-                <div class="page-header"><h1><span id="scores-page-icon" class="icon-header"></span>ผลการแข่งขัน</h1><button id="export-scores-btn" class="export-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_114)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_114)"></rect><path d="M15 11C15 12.6569 13.6569 14 12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11Z" stroke="white" stroke-width="1.5"></path><path d="M7 6.5H17V16.5C17 17.0523 16.5523 17.5 16 17.5H8C7.44772 17.5 7 17.0523 7 16.5V6.5Z" stroke="white" stroke-width="1.5"></path></g><defs><filter id="filter0_d_1_114" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_114"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_114" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_114" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#BB86FC"></stop><stop offset="1" stop-color="#7B1FA2"></stop></linearGradient></defs></svg>Export</button></div>
+                <div class="page-header"><h1>📝 ผลการแข่งขัน</h1><button id="export-scores-btn" class="export-btn">📸 Export</button></div>
                  <div class="date-selector-container"><select id="scores-date-selector"></select></div>
                  <div id="scores-container"></div>
             </div>
 
             <div id="page-leaderboard" class="page">
-                 <div class="page-header"><h1><span id="leaderboard-page-icon" class="icon-header"></span>ตารางคะแนน</h1><button id="export-leaderboard-btn" class="export-btn"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_114)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_114)"></rect><path d="M15 11C15 12.6569 13.6569 14 12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11Z" stroke="white" stroke-width="1.5"></path><path d="M7 6.5H17V16.5C17 17.0523 16.5523 17.5 16 17.5H8C7.44772 17.5 7 17.0523 7 16.5V6.5Z" stroke="white" stroke-width="1.5"></path></g><defs><filter id="filter0_d_1_114" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_114"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_114" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_114" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#BB86FC"></stop><stop offset="1" stop-color="#7B1FA2"></stop></linearGradient></defs></svg>Export</button></div>
+                 <div class="page-header"><h1>📊 ตารางคะแนน</h1><button id="export-leaderboard-btn" class="export-btn">📸 Export</button></div>
                  <div class="date-selector-container"><select id="leaderboard-date-selector"></select></div>
                  <div id="leaderboard-container" class="leaderboard-container"></div>
             </div>
         </main>
         
         <nav class="bottom-nav">
-            <button class="nav-btn" data-page="page-setup"><span id="nav-icon-setup" class="icon"></span>จัดการทีม</button>
-            <button class="nav-btn" data-page="page-schedule"><span id="nav-icon-schedule" class="icon"></span>ตารางแข่ง</button>
-            <button class="nav-btn" data-page="page-scores"><span id="nav-icon-scores" class="icon"></span>บันทึกผล</button>
-            <button class="nav-btn" data-page="page-leaderboard"><span id="nav-icon-leaderboard" class="icon"></span>ตารางคะแนน</button>
+            <button class="nav-btn" data-page="page-setup"><span class="icon">⚙️</span>จัดการทีม</button>
+            <button class="nav-btn" data-page="page-schedule"><span class="icon">📅</span>ตารางแข่ง</button>
+            <button class="nav-btn" data-page="page-scores"><span class="icon">✏️</span>บันทึกผล</button>
+            <button class="nav-btn" data-page="page-leaderboard"><span class="icon">🏆</span>ตารางคะแนน</button>
         </nav>
     </div>
     
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal-btn">×</span>
-            <h2><span id="login-modal-icon" style="width:24px; height:24px; vertical-align: middle; display: inline-block;"></span> เข้าสู่ระบบผู้ดูแล</h2>
+            <h2>🔐 เข้าสู่ระบบผู้ดูแล</h2>
             <form id="login-form">
                 <div class="form-group"><label for="login-email">อีเมล</label><input type="email" id="login-email" required autocomplete="email"></div>
                 <div class="form-group"><label for="login-password">รหัสผ่าน</label><input type="password" id="login-password" required autocomplete="current-password"></div>
@@ -229,24 +297,17 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
         const TEAMS = [ 
-            { name: 'ทีมเขียว', color: 'green', slug: 'green' }, { name: 'ทีมแดง', color: 'red', slug: 'red' }, { name: 'ทีมขาว', color: 'white', slug: 'white' }, { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, { name: 'ทีมดำ', color: 'black', slug: 'black' }, { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' }, { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, 
+            { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
+            { name: 'ทีมแดง', color: 'red', slug: 'red' }, 
+            { name: 'ทีมขาว', color: 'white', slug: 'white' }, 
+            { name: 'ทีมฟ้า', color: 'blue', slug: 'blue' }, 
+            { name: 'ทีมดำ', color: 'black', slug: 'black' }, 
+            { name: 'ทีมเหลือง', color: 'yellow', slug: 'yellow' }, 
+            { name: 'ทีมชมพู', color: 'pink', slug: 'pink' }, 
+            { name: 'ทีมส้ม', color: 'orange', slug: 'orange' }, 
+            { name: 'ทีมน้ำเงิน', color: 'navy', slug: 'navy' }, 
+            { name: 'ทีมม่วง', color: 'purple', slug: 'purple' }, 
         ];
-
-        // --- START SVG ICONS DICTIONARY ---
-        const ICONS_SVG = {
-            plus: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" /></svg>`,
-            minus: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,13H5V11H19V13Z" /></svg>`,
-            reset: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>`,
-            trash: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_117)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_117)"></rect><path d="M7 6H17M9 6V5C9 4.44772 9.44772 4 10 4H14C14.5523 4 15 4.44772 15 5V6M16 6V17C16 17.5523 15.5523 18 15 18H9C8.44772 18 8 17.5523 8 17V6H16Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_117" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0.815686 0 0 0 0 0.184314 0 0 0 0 0.184314 0 0 0 1 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_117"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_117" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_117" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#D32F2F"></stop><stop offset="1" stop-color="#B71C1C"></stop></linearGradient></defs></svg>`,
-            add: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_118)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_118)"></rect><path d="M12 7V17M7 12H17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_118" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_118"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_118" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_118" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#BB86FC"></stop><stop offset="1" stop-color="#7B1FA2"></stop></linearGradient></defs></svg>`,
-            user: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_121)"><circle cx="12" cy="11" r="10" fill="url(#paint0_linear_1_121)"></circle><path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17.8689 16.5C16.8378 15.0665 15.0123 14 13 14H11C8.98772 14 7.16223 15.0665 6.13113 16.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_121" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_121"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_121" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_121" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#626262"></stop><stop offset="1" stop-color="#333333"></stop></linearGradient></defs></svg>`,
-            lock: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#filter0_d_1_120)"><rect x="2" y="1" width="20" height="20" rx="4" fill="url(#paint0_linear_1_120)"></rect><path d="M16 9.5V8.5C16 6.01472 14.2091 4 12 4C9.79086 4 8 6.01472 8 8.5V9.5M6 9.5H18V18.5C18 19.0523 17.5523 19.5 17 19.5H7C6.44772 19.5 6 19.0523 6 18.5V9.5Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></g><defs><filter id="filter0_d_1_120" x="0" y="0" width="24" height="24" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood><feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix><feOffset dy="1"></feOffset><feGaussianBlur stdDeviation="1"></feGaussianBlur><feComposite in2="hardAlpha" operator="out"></feComposite><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix><feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_120"></feBlend><feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_120" result="shape"></feBlend></filter><linearGradient id="paint0_linear_1_120" x1="2" y1="1" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#03DAC6"></stop><stop offset="1" stop-color="#018786"></stop></linearGradient></defs></svg>`,
-            setup: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="a" x1="50.55" x2="13.45" y1="50.55" y2="13.45" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#bb86fc"/><stop offset="1" stop-color="#8e24aa"/></linearGradient><filter id="b" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter></defs><g filter="url(#b)"><circle cx="32" cy="32" r="28" fill="url(#a)"/><path fill="#fff" d="M49.64 34h-4.33l-1.87 3.23a10.87 10.87 0 0 1-4.63 4.63l-3.23 1.87v4.33a2 2 0 0 1-4 0v-4.33l-3.23-1.87a10.87 10.87 0 0 1-4.63-4.63l-1.87-3.23h-4.33a2 2 0 0 1 0-4h4.33l1.87-3.23a10.87 10.87 0 0 1 4.63-4.63l3.23-1.87v-4.33a2 2 0 0 1 4 0v4.33l3.23 1.87a10.87 10.87 0 0 1 4.63 4.63l1.87 3.23h4.33a2 2 0 0 1 0 4ZM32 24a8 8 0 1 0 8 8a8 8 0 0 0-8-8Z"/></g></svg>`,
-            schedule: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="c" x1="50.55" x2="13.45" y1="50.55" y2="13.45" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#03dac6"/><stop offset="1" stop-color="#018786"/></linearGradient><filter id="d" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter></defs><g filter="url(#d)"><rect width="50" height="46" x="7" y="9" fill="url(#c)" rx="8"/><path fill="#fff" d="M21 15h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2ZM33 15h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2ZM45 15h-2a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2ZM15 29h8v8h-8zM21 41a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2Zm12 0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2Zm12 0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2Z"/><path fill="#fff" d="M49 25H15a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h34a2 2 0 0 0 2-2V27a2 2 0 0 0-2-2Zm-26 2h8v8h-8Zm-4 16a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2Zm12 0a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2Zm12 0a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2Z" opacity=".2"/></g></svg>`,
-            scores: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="e" x1="50.55" x2="13.45" y1="50.55" y2="13.45" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#03dac6"/><stop offset="1" stop-color="#018786"/></linearGradient><filter id="f" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter></defs><g filter="url(#f)"><path fill="url(#e)" d="M48 9H22a6 6 0 0 0-6 6v34a6 6 0 0 0 6 6h26a6 6 0 0 0 6-6V15a6 6 0 0 0-6-6Z"/><path fill="#fff" d="m30.34 38.66-3.59-3.58a2 2 0 0 0-2.82 2.82l5 5a2 2 0 0 0 2.82 0l8-8a2 2 0 1 0-2.82-2.82ZM42 26H26a2 2 0 0 1 0-4h16a2 2 0 0 1 0 4Z"/><path fill="#fff" opacity=".2" d="M48 51a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V15a4 4 0 0 1 4-4h26a4 4 0 0 1 4 4v36Z"/></g></svg>`,
-            leaderboard: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="51.5" x2="11.5" y1="52" y2="12" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fbc02d"/><stop offset="1" stop-color="#fff176"/></linearGradient><filter id="h" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter></defs><g filter="url(#h)"><path fill="#bcaaa4" d="M47 55H17a4 4 0 0 1-4-4v-5h38v5a4 4 0 0 1-4 4Z"/><path fill="url(#g)" d="M52 17a5 5 0 0 0-5-5h-4a23.12 23.12 0 0 0-22 0h-4a5 5 0 0 0-5 5v24h42Z"/><path fill="#9d847e" d="M43 46H21a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h22a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z"/><path fill="#fff" opacity=".2" d="M48 13.1a5 5 0 0 0 3.54 1.46h.46V13a5 5 0 0 0-5-5h-4a23.12 23.12 0 0 0-1.74.22A23.12 23.12 0 0 1 52 17v24h2V17a7 7 0 0 0-7-7h-4.22a21.12 21.12 0 0 0-38.56 0H8a7 7 0 0 0-7 7v29a2 2 0 0 0 2 2h38v5a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2v-5h3v-2Z"/></g></svg>`,
-        };
-        // --- END SVG ICONS DICTIONARY ---
         
         let appData = {};
         let activePage = 'page-schedule';
@@ -266,24 +327,30 @@
         const teamSelectModal = document.getElementById('team-select-modal');
         
         const MASTER_TEMPLATES = {
-            '6-teams': [{ name: '6 ทีม', data: [ {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4}, {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3}, {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5}, {home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6}, {home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1}, {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4} ]}],
-            '5-teams': [ { name: 'ตาราง 1', data: [ {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5}, {home:3, away:4}, {home:1, away:2}, {home:5, away:3}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:4, away:5} ] }, { name: 'ตาราง 2', data: [ {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:2}, {home:1, away:3}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:3}, {home:5, away:1}, {home:4, away:2}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5}, {home:3, away:1}, {home:5, away:4}, {home:2, away:1}, {home:3, away:4} ] }, { name: 'ตาราง 3', data: [ {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:1}, {home:5, away:2}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:2}, {home:4, away:5}, {home:3, away:1}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:5}, {home:4, away:3}, {home:1, away:5}, {home:2, away:3} ] }, { name: 'ตาราง 4', data: [ {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:1}, {home:3, away:4}, {home:2, away:5}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:4}, {home:3, away:2}, {home:5, away:4}, {home:1, away:2} ] }, { name: 'ตาราง 5', data: [ {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:4}, {home:3, away:5}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:5}, {home:2, away:3}, {home:1, away:4}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:3}, {home:2, away:1}, {home:4, away:3}, {home:5, away:1} ] } ],
-            '4-teams': [{ name: 'ตาราง 1', data: [ {home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3}, {home:3, away:1}, {home:4, away:2}, {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4}, {home:2, away:1}, {home:4, away:3} ]}]
+            '6-teams': [{ name: '6 ทีม', data: [
+                {home:1,away:6},{home:2,away:5},{home:3,away:4},{home:1,away:5},{home:6,away:4},
+                {home:2,away:3},{home:1,away:4},{home:5,away:3},{home:6,away:2},{home:1,away:3},
+                {home:4,away:2},{home:5,away:6},{home:1,away:2},{home:3,away:6},{home:4,away:5},
+                {home:6,away:1},{home:5,away:2},{home:4,away:3},{home:5,away:1},{home:4,away:6},
+                {home:3,away:2},{home:4,away:1},{home:3,away:5},{home:2,away:6},{home:3,away:1},
+                {home:2,away:4},{home:6,away:5},{home:2,away:1},{home:6,away:3},{home:5,away:4}
+            ]}],
+            '5-teams': [
+                { name: 'ตาราง 1', data: [ {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:3}, {home:2, away:4}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5}, {home:3, away:4}, {home:1, away:2}, {home:5, away:3}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:2}, {home:1, away:5}, {home:3, away:2}, {home:4, away:5} ] },
+                { name: 'ตาราง 2', data: [ {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:2}, {home:1, away:3}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:3}, {home:5, away:1}, {home:4, away:2}, {home:3, away:5}, {home:1, away:4}, {home:2, away:5}, {home:3, away:1}, {home:5, away:4}, {home:2, away:1}, {home:3, away:4} ] },
+                { name: 'ตาราง 3', data: [ {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:1}, {home:5, away:2}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:2}, {home:4, away:5}, {home:3, away:1}, {home:2, away:4}, {home:5, away:3}, {home:1, away:4}, {home:2, away:5}, {home:4, away:3}, {home:1, away:5}, {home:2, away:3} ] },
+                { name: 'ตาราง 4', data: [ {home:3, away:4}, {home:5, away:1}, {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:5}, {home:4, away:1}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:1}, {home:3, away:4}, {home:2, away:5}, {home:1, away:3}, {home:4, away:2}, {home:5, away:3}, {home:1, away:4}, {home:3, away:2}, {home:5, away:4}, {home:1, away:2} ] },
+                { name: 'ตาราง 5', data: [ {home:2, away:3}, {home:4, away:5}, {home:1, away:2}, {home:3, away:4}, {home:5, away:1}, {home:2, away:4}, {home:3, away:5}, {home:4, away:1}, {home:2, away:5}, {home:3, away:1}, {home:4, away:5}, {home:2, away:3}, {home:1, away:4}, {home:5, away:2}, {home:3, away:1}, {home:4, away:2}, {home:5, away:3}, {home:2, away:1}, {home:4, away:3}, {home:5, away:1} ] }
+            ],
+            '4-teams': [{ name: 'ตาราง 1', data: [
+                {home:1, away:2}, {home:3, away:4}, {home:4, away:1}, {home:2, away:3},
+                {home:3, away:1}, {home:4, away:2},
+                {home:1, away:3}, {home:2, away:4}, {home:3, away:2}, {home:1, away:4},
+                {home:2, away:1}, {home:4, away:3}
+            ]}]
         };
         
-        function init() {
-            // Populate icons
-            document.getElementById('setup-page-icon').innerHTML = ICONS_SVG.setup;
-            document.getElementById('schedule-page-icon').innerHTML = ICONS_SVG.schedule;
-            document.getElementById('scores-page-icon').innerHTML = ICONS_SVG.scores;
-            document.getElementById('leaderboard-page-icon').innerHTML = ICONS_SVG.leaderboard;
-            document.getElementById('nav-icon-setup').innerHTML = ICONS_SVG.setup;
-            document.getElementById('nav-icon-schedule').innerHTML = ICONS_SVG.schedule;
-            document.getElementById('nav-icon-scores').innerHTML = ICONS_SVG.scores;
-            document.getElementById('nav-icon-leaderboard').innerHTML = ICONS_SVG.leaderboard;
-            document.getElementById('login-modal-icon').innerHTML = ICONS_SVG.lock;
-
-
+        async function init() {
             loginBtn.addEventListener('click', () => loginModal.style.display = 'block');
             logoutBtn.addEventListener('click', handleLogout);
             document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -305,7 +372,7 @@
                 currentUser = session ? session.user : null;
                 const isLoggedIn = !!currentUser;
                 toggleAdminView(isLoggedIn);
-                if (isLoggedIn) { userInfo.innerHTML = `${ICONS_SVG.user} ${currentUser.email}`; loginModal.style.display = 'none'; }
+                if (isLoggedIn) { userInfo.textContent = `👤 ${currentUser.email}`; loginModal.style.display = 'none'; }
                 if(event === 'INITIAL_SESSION' || (wasLoggedIn !== isLoggedIn)) { await loadInitialData(); }
             });
         }
@@ -318,23 +385,23 @@
         }
 
         function toggleAdminView(isLoggedIn) {
-            loginBtn.style.display = isLoggedIn ? 'none' : 'inline-flex';
+            loginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
             logoutBtn.style.display = isLoggedIn ? 'inline-block' : 'none';
-            userInfo.style.display = isLoggedIn ? 'inline-flex' : 'none';
+            userInfo.style.display = isLoggedIn ? 'inline-block' : 'none';
             document.querySelector('.nav-btn[data-page="page-setup"]').style.display = isLoggedIn ? 'flex' : 'none';
-            document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-flex' : 'none';
+            document.getElementById('delete-day-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
             if (!isLoggedIn && activePage === 'page-setup') setActivePage('page-schedule');
             renderAllPagesForDate(currentDateKey);
         }
 
         async function handleLogin(e) { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; const { error } = await db.auth.signInWithPassword({ email, password }); if (error) alert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message); }
-        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { document.getElementById('login-form').reset(); } }
+        async function handleLogout() { const { error } = await db.auth.signOut(); if (error) { alert('ออกจากระบบไม่สำเร็จ: ' + error.message); } else { loginForm.reset(); } }
         async function updateScheduleInDB(newSchedule) { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }
         
         function renderSchedulePage(date) {
             const container = document.getElementById('schedule-container');
             const dayData = appData[date];
-            if (!dayData || !dayData.schedule) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', ICONS_SVG.schedule); return; }
+            if (!dayData || !dayData.schedule) { container.innerHTML = createNoDataMessage('ยังไม่มีตารางการแข่งขันสำหรับวันนี้', '📅'); return; }
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`);
             let html = schedule.map((match, index) => { 
@@ -342,7 +409,7 @@
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
                 const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' }; 
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' };
-                const adminDeleteBtn = currentUser ? `<div class="match-actions"><button class="delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">${ICONS_SVG.trash}</button></div>` : '';
+                const adminDeleteBtn = currentUser ? `<div class="match-actions"><button class="delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">🗑️</button></div>` : '';
                 const draggableClass = currentUser ? 'draggable' : '';
                 const draggableAttr = currentUser ? 'draggable="true"' : '';
                 const clickableTeamClass = currentUser ? 'clickable-team' : '';
@@ -355,7 +422,7 @@
                             </div>
                         </div>`; 
             }).join('');
-            if (currentUser && dayData.schedule) { html += `<button id="add-match-btn" class="btn btn-primary">${ICONS_SVG.add} เพิ่มแมตช์ใหม่</button>`; }
+            if (currentUser && dayData.schedule) { html += `<button id="add-match-btn" class="btn btn-primary">➕ เพิ่มแมตช์ใหม่</button>`; }
             container.innerHTML = html;
             if(currentUser) {
                 container.querySelectorAll('.delete-match-btn').forEach(btn => btn.addEventListener('click', (e) => handleDeleteMatch(e.currentTarget.dataset.index)));
@@ -381,7 +448,7 @@
                 let reorderedSchedule = [];
                 const currentSchedule = appData[currentDateKey].schedule;
                 const matchCards = container.querySelectorAll('.match-card[data-index]');
-                for (const card of matchCards) { const originalIndex = parseInt(card.dataset.index); const matchData = currentSchedule.find((m, i) => i === originalIndex); if (matchData) reorderedSchedule.push(matchData); }
+                for (const card of matchCards) { const originalIndex = parseInt(card.dataset.index); const matchData = currentSchedule[originalIndex]; if (matchData) reorderedSchedule.push(matchData); }
                 await updateScheduleInDB(reorderedSchedule);
             });
         }
@@ -416,7 +483,7 @@
         function setupPageSetup() { 
             const contentWrapper = document.getElementById('setup-content-wrapper'); 
             const loginPrompt = document.getElementById('setup-login-prompt'); 
-            if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', ICONS_SVG.lock); return; } 
+            if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } 
             contentWrapper.style.display = 'block'; 
             loginPrompt.style.display = 'none'; 
             if (!isInitialSetupDone) { 
@@ -432,7 +499,10 @@
             updateAdvancedOptions(); 
         }
 
-        function updateAdvancedOptions() { updateOpenerSelects(); updateTemplateSelector(); }
+        function updateAdvancedOptions() {
+            updateOpenerSelects();
+            updateTemplateSelector();
+        }
         
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
         function updateOpenerSelects() { const openerHomeSelect = document.getElementById('opener-home'); const openerAwaySelect = document.getElementById('opener-away'); const activeTeamSlugs = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug); const currentHome = openerHomeSelect.value; const currentAway = openerAwaySelect.value; openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; activeTeamSlugs.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const optionHtml = `<option value="${team.slug}">${team.name}</option>`; openerHomeSelect.innerHTML += optionHtml; openerAwaySelect.innerHTML += optionHtml; } }); openerHomeSelect.value = activeTeamSlugs.includes(currentHome) ? currentHome : ''; openerAwaySelect.value = activeTeamSlugs.includes(currentAway) ? currentAway : ''; }
@@ -507,17 +577,24 @@
         function generateDoubleRoundRobin(teams) {
             let teamList = [...teams];
             const BYE = "BYE_TEAM_PLACEHOLDER";
-            if (teamList.length % 2 !== 0) teamList.push(BYE);
+            if (teamList.length % 2 !== 0) {
+                teamList.push(BYE);
+            }
             const numTeams = teamList.length;
+            const numRounds = numTeams - 1;
             const leg1 = [];
-            for (let round = 0; round < numTeams - 1; round++) {
+
+            for (let round = 0; round < numRounds; round++) {
                 for (let i = 0; i < numTeams / 2; i++) {
                     const home = teamList[i];
                     const away = teamList[numTeams - 1 - i];
-                    if (home !== BYE && away !== BYE) leg1.push({ home, away });
+                    if (home !== BYE && away !== BYE) {
+                        leg1.push({ home, away });
+                    }
                 }
                 teamList.splice(1, 0, teamList.pop());
             }
+
             const leg2 = leg1.map(match => ({ home: match.away, away: match.home }));
             return [...leg1, ...leg2];
         }
@@ -541,23 +618,35 @@
             const templateIndex = parseInt(document.getElementById('template-selector').value) || 0;
 
             if (MASTER_TEMPLATES[templateKey]) {
-                let useOpener = (teamCount === 6);
+                console.log(`Using MASTER TEMPLATE for ${teamCount} teams (Variant: ${templateIndex})...`);
+                let useOpener = (teamCount === 6); // Only use opener for 6 teams or others, not 4 or 5
                 schedule = generateScheduleFromTemplate(settings.activeTeams, templateIndex, useOpener ? settings.opener : null);
+
             } else {
+                console.log(`No template found. Using Round-Robin algorithm for ${teamCount} teams...`);
                 schedule = generateDoubleRoundRobin(settings.activeTeams);
+                
                 if (settings.opener && settings.opener.home && settings.opener.away) {
                     const openerIndex = schedule.findIndex(m => m.home === settings.opener.home && m.away === settings.opener.away);
                     if (openerIndex > 0) {
-                        schedule.unshift(schedule.splice(openerIndex, 1)[0]);
+                        const part1 = schedule.slice(openerIndex);
+                        const part2 = schedule.slice(0, openerIndex);
+                        schedule = [...part1, ...part2];
                     }
                 }
             }
             
             const finalSchedule = schedule.map(match => ({...match, homeScore: null, awayScore: null}));
+
             const { error } = await db.from('match_days').upsert({ match_date: date, settings: settings, schedule: finalSchedule }, { onConflict: 'match_date' });
             
-            if (error) { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); } 
-            else { alert('สร้างตารางแข่งขันเรียบร้อยแล้ว!'); await loadDataForDate(date); setActivePage('page-schedule'); }
+            if (error) { 
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message); 
+            } else { 
+                alert('สร้างตารางแข่งขันเรียบร้อยแล้ว!'); 
+                await loadDataForDate(date); 
+                setActivePage('page-schedule'); 
+            }
         }
         
         function showToast(message) {
@@ -565,16 +654,19 @@
             toast.className = 'toast-notification';
             toast.textContent = message;
             document.body.appendChild(toast);
+
             setTimeout(() => {
                 toast.classList.add('fade-out');
-                setTimeout(() => { document.body.removeChild(toast); }, 500);
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 500);
             }, 2500);
         }
 
         function exportElementAsPNG(elementId, filename, buttonElement) { 
             const element = document.getElementById(elementId); 
             if (!element) return; 
-            const originalHTML = buttonElement.innerHTML;
+            const originalText = buttonElement.innerHTML; 
             buttonElement.innerHTML = '⌛ กำลังสร้าง...'; buttonElement.disabled = true; 
             html2canvas(element, { backgroundColor: '#121212', useCORS: true, scale: 2 }).then(canvas => { 
                 const link = document.createElement('a'); 
@@ -586,7 +678,7 @@
                 console.error('oops, something went wrong!', err); 
                 alert('เกิดข้อผิดพลาดในการสร้างรูปภาพ'); 
             }).finally(() => { 
-                buttonElement.innerHTML = originalHTML; buttonElement.disabled = false; 
+                buttonElement.innerHTML = originalText; buttonElement.disabled = false; 
             }); 
         }
 
@@ -614,14 +706,19 @@
 
         async function deleteDay() { if (!currentUser) return alert('ต้องเป็นผู้ดูแลเท่านั้น'); const dateToDelete = document.getElementById('schedule-date-selector').value; if (dateToDelete && confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของวันที่ ${dateToDelete} ทั้งหมด?`)) { const { error } = await db.from('match_days').delete().eq('match_date', dateToDelete); if (error) alert('เกิดข้อผิดพลาด: ' + error.message); else alert('ลบข้อมูลเรียบร้อยแล้ว'); } }
         async function updateDateSelectors() { const { data: datesData, error } = await db.from('match_days').select('match_date').order('match_date', { ascending: false }); if (error) return; const dates = datesData.map(d => d.match_date); const selectors = [document.getElementById('schedule-date-selector'), document.getElementById('scores-date-selector'), document.getElementById('leaderboard-date-selector')]; selectors.forEach(selector => { const currentVal = selector.value; selector.innerHTML = ''; if (dates.length === 0) { selector.innerHTML = '<option>ยังไม่มีข้อมูล</option>'; } else { dates.forEach(date => { const option = document.createElement('option'); option.value = date; option.textContent = new Date(date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }); selector.appendChild(option); }); } if (dates.includes(currentVal)) { selector.value = currentVal; } else if (dates.includes(currentDateKey)) { selector.value = currentDateKey; } else if (dates.length > 0) { selector.value = dates[0]; } }); selectors.forEach(selector => { selector.onchange = (e) => { const newDate = e.target.value; selectors.forEach(s => s.value = newDate); loadDataForDate(newDate); }; }); document.getElementById('delete-day-btn').onclick = deleteDay; }
+        function createNoDataMessage(message, icon) { return `<div id="no-data-message"><div class="icon">${icon}</div><p>${message}</p></div>`; }
         
-        function createNoDataMessage(message, iconSvg) { return `<div id="no-data-message"><div class="icon">${iconSvg}</div><p>${message}</p></div>`; }
-        
+        /* START: CHANGE 2 - ปรับปรุง renderScoresPage ให้ใช้ SVG */
         function renderScoresPage(date) { 
             const container = document.getElementById('scores-container'); 
-            document.querySelector('#page-scores h1').innerHTML = `<span class="icon-header">${ICONS_SVG.scores}</span> ${currentUser ? 'บันทึกผลการแข่งขัน' : 'ผลการแข่งขัน'}`; 
+            document.querySelector('#page-scores h1').textContent = currentUser ? '📝 บันทึกผลการแข่งขัน' : '📝 ผลการแข่งขัน'; 
             const dayData = appData[date]; 
-            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', ICONS_SVG.scores); return; } 
+            if (!dayData || !dayData.schedule || dayData.schedule.length === 0) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลการแข่งขันสำหรับวันนี้', '✏️'); return; } 
+            
+            // สร้าง SVG Icons เป็นตัวแปร
+            const svgMinus = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
+            const svgPlus = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
+            const svgReset = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65,6.35C16.2,4.9,14.21,4,12,4c-4.42,0-7.99,3.58-7.99,8s3.57,8,7.99,8c3.73,0,6.84-2.55,7.73-6h-2.08c-0.82,2.33-3.04,4-5.65,4-3.31,0-6-2.69-6-6s2.69-6,6-6c1.66,0,3.14,0.69,4.22,1.78L13,11h7V4L17.65,6.35z"/></svg>`;
 
             const { schedule, settings } = dayData; 
             const startTime = new Date(`${date}T${settings.startTime}`); 
@@ -640,21 +737,21 @@
                                 <div class="team-score-wrapper">
                                     <div class="team-emblem ${homeTeam.slug}">${homeTeam.name}</div>
                                     <div class="score-control">
-                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>${ICONS_SVG.minus}</button>
+                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="-1" ${disabledAttr}>${svgMinus}</button>
                                         <input type="number" class="score-input" value="${match.homeScore === null ? '' : match.homeScore}" data-index="${index}" data-team="home" ${readonlyAttr}>
-                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>${ICONS_SVG.plus}</button>
+                                        <button class="score-btn" data-index="${index}" data-team="home" data-op="1" ${disabledAttr}>${svgPlus}</button>
                                     </div>
                                 </div>
                                 <div class="match-center-controls">
                                     <span class="vs">VS</span>
-                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>${ICONS_SVG.reset}</button>
+                                    <button class="reset-score-btn" data-index="${index}" ${disabledAttr}>${svgReset}</button>
                                 </div>
                                 <div class="team-score-wrapper">
                                     <div class="team-emblem ${awayTeam.slug}">${awayTeam.name}</div>
                                     <div class="score-control">
-                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>${ICONS_SVG.minus}</button>
+                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="-1" ${disabledAttr}>${svgMinus}</button>
                                         <input type="number" class="score-input" value="${match.awayScore === null ? '' : match.awayScore}" data-index="${index}" data-team="away" ${readonlyAttr}>
-                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>${ICONS_SVG.plus}</button>
+                                        <button class="score-btn" data-index="${index}" data-team="away" data-op="1" ${disabledAttr}>${svgPlus}</button>
                                     </div>
                                 </div>
                             </div>
@@ -662,8 +759,9 @@
             }).join(''); 
             if (currentUser) { container.querySelectorAll('.score-btn').forEach(btn => btn.addEventListener('click', updateScoreFromButton)); container.querySelectorAll('.score-input').forEach(input => input.addEventListener('change', updateScoreFromInput)); container.querySelectorAll('.reset-score-btn').forEach(btn => btn.addEventListener('click', resetScore)); } 
         }
+        /* END: CHANGE 2 */
 
-        function renderLeaderboardPage(date) { const container = document.getElementById('leaderboard-container'); const dayData = appData[date]; if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', ICONS_SVG.leaderboard); return; } const stats = calculateLeaderboard(date); const sortedTeams = Object.values(stats).sort((a, b) => { if (b.pts !== a.pts) return b.pts - a.pts; if (b.gd !== a.gd) return b.gd - a.gd; if (b.gf !== a.gf) return b.gf - a.gf; return a.name.localeCompare(b.name); }); const medals = ['🥇', '🥈', '🥉']; container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`; }
+        function renderLeaderboardPage(date) { const container = document.getElementById('leaderboard-container'); const dayData = appData[date]; if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { container.innerHTML = createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', '📊'); return; } const stats = calculateLeaderboard(date); const sortedTeams = Object.values(stats).sort((a, b) => { if (b.pts !== a.pts) return b.pts - a.pts; if (b.gd !== a.gd) return b.gd - a.gd; if (b.gf !== a.gf) return b.gf - a.gf; return a.name.localeCompare(b.name); }); const medals = ['🥇', '🥈', '🥉']; container.innerHTML = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`; }
         async function updateScore(index, team, value) { if (!currentUser) return; const date = currentDateKey; let dayData = appData[date]; if (!dayData) return; const newSchedule = [...dayData.schedule]; const match = newSchedule[index]; if (team === 'home') match.homeScore = value; else match.awayScore = value; updateScheduleInDB(newSchedule); }
         function updateScoreFromButton(event) { const { index, team, op } = event.currentTarget.dataset; const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`); let currentValue = parseInt(input.value || '0'); currentValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1); input.value = currentValue; updateScore(index, team, currentValue); }
         function updateScoreFromInput(event) { const { index, team } = event.currentTarget.dataset; let value = event.currentTarget.value === '' ? null : Math.max(0, parseInt(event.currentTarget.value)); event.currentTarget.value = value === null ? '' : value; updateScore(index, team, value); }
