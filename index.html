@@ -38,7 +38,11 @@
         .export-btn:disabled { background-color: #555; cursor: not-allowed; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-around; background-color: var(--surface-color); border-top: 1px solid var(--border-color); box-shadow: 0 -5px 15px var(--shadow-color); z-index: 1000; }
         .nav-btn { flex-grow: 1; padding: 10px 5px; background: none; border: none; color: var(--text-muted); font-family: 'Kanit', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .nav-btn .icon { font-size: 24px; }
+        .nav-btn .icon-img {
+            height: 28px;
+            width: 28px;
+            object-fit: contain;
+        }
         .nav-btn.active, .nav-btn:hover { color: var(--secondary-color); background-color: rgba(3, 218, 198, 0.1); }
         .card { background-color: var(--surface-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px var(--shadow-color); }
@@ -261,10 +265,10 @@
         </main>
         
         <nav class="bottom-nav">
-            <button class="nav-btn" data-page="page-setup"><span class="icon">⚙️</span>จัดการทีม</button>
-            <button class="nav-btn" data-page="page-schedule"><span class="icon">📅</span>ตารางแข่ง</button>
-            <button class="nav-btn" data-page="page-scores"><span class="icon">✏️</span>บันทึกผล</button>
-            <button class="nav-btn" data-page="page-leaderboard"><span class="icon">🏆</span>ตารางคะแนน</button>
+            <button class="nav-btn" data-page="page-setup"><img class="icon-img" src="image_2.jpg" alt="จัดการทีม">จัดการทีม</button>
+            <button class="nav-btn" data-page="page-schedule"><img class="icon-img" src="image_1.jpg" alt="ตารางแข่ง">ตารางแข่ง</button>
+            <button class="nav-btn" data-page="page-scores"><img class="icon-img" src="image_3.jpg" alt="บันทึกผล">บันทึกผล</button>
+            <button class="nav-btn" data-page="page-leaderboard"><img class="icon-img" src="image_4.jpg" alt="ตารางคะแนน">ตารางคะแนน</button>
         </nav>
     </div>
     
