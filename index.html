@@ -68,31 +68,9 @@
         .leaderboard-table td.team-name { text-align: left; font-weight: 600; }
         .date-selector-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .date-selector-container select { flex-grow: 1; }
-        
-        /* START: CHANGE 1 - ปรับ Style ปุ่มลบข้อมูลวัน */
-        .delete-day-btn { 
-            width: 44px;
-            height: 44px;
-            background-color: var(--team-red); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: filter 0.2s ease-in-out;
-            flex-shrink: 0;
-        }
-        .delete-day-btn:hover {
-            filter: brightness(1.2);
-        }
-        .delete-day-btn svg {
-            width: 20px;
-            height: 20px;
-        }
-        /* END: CHANGE 1 */
-
+        .delete-day-btn { width: 44px; height: 44px; background-color: var(--team-red); color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: filter 0.2s ease-in-out; flex-shrink: 0; }
+        .delete-day-btn:hover { filter: brightness(1.2); }
+        .delete-day-btn svg { width: 20px; height: 20px; }
         #no-data-message { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         #no-data-message .icon { font-size: 48px; margin-bottom: 16px; }
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); animation: fadeIn 0.3s; }
@@ -101,22 +79,16 @@
         .close-modal-btn:hover, .close-modal-btn:focus { color: var(--text-color); }
         #modal-match-info { margin-bottom: 15px; color: var(--text-muted); text-align: center; }
         .match-actions { margin-left: auto; }
+        .delete-match-btn { background-color: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); /* สีเริ่มต้น */ transition: color 0.2s ease-in-out; display: flex; align-items: center; }
         
-        /* START: CHANGE 2 - ปรับ Style ปุ่มลบแมตช์ */
-        .delete-match-btn {
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-            color: var(--text-muted); /* สีเริ่มต้น */
-            transition: color 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
+        /* START: CHANGE - แก้ไขโค้ดส่วนนี้ */
+        /* ทำให้ hover effect ทำงานเฉพาะบนอุปกรณ์ที่มีเมาส์เท่านั้น */
+        @media (hover: hover) {
+            .delete-match-btn:hover {
+                color: var(--team-red); /* สีแดงเมื่อ hover */
+            }
         }
-        .delete-match-btn:hover {
-            color: var(--team-red); /* สีแดงเมื่อ hover */
-        }
-        /* END: CHANGE 2 */
+        /* END: CHANGE */
 
         .custom-number-input { display: flex; align-items: center; gap: 5px; }
         .custom-number-input input { text-align: center; flex-grow: 1; }
@@ -204,7 +176,6 @@
             
             <div id="page-schedule" class="page">
                 <div class="page-header"><h1>📅 ตารางการแข่งขัน</h1><button id="export-schedule-btn" class="export-btn">📸 Export</button></div>
-                <!-- START: CHANGE 3 - แทนที่ไอคอนในปุ่มด้วย SVG -->
                 <div class="date-selector-container">
                     <select id="schedule-date-selector"></select>
                     <button id="delete-day-btn" class="delete-day-btn" title="ลบข้อมูลของวันนี้">
@@ -213,7 +184,6 @@
                         </svg>
                     </button>
                 </div>
-                <!-- END: CHANGE 3 -->
                 <div id="schedule-container"></div>
             </div>
 
@@ -266,10 +236,8 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
         
-        // START: CHANGE 4 - สร้างตัวแปรสำหรับเก็บ SVG
         const SVG_TRASH = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg>`;
-        // END: CHANGE 4
-
+        
         const TEAMS = [ 
             { name: 'ทีมเขียว', color: 'green', slug: 'green' }, 
             { name: 'ทีมแดง', color: 'red', slug: 'red' }, 
@@ -383,9 +351,7 @@
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'}); 
                 const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' }; 
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' };
-                // START: CHANGE 5 - ใช้ SVG_TRASH ในปุ่มลบ
                 const adminDeleteBtn = currentUser ? `<div class="match-actions"><button class="delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">${SVG_TRASH}</button></div>` : '';
-                // END: CHANGE 5
                 const draggableClass = currentUser ? 'draggable' : '';
                 const draggableAttr = currentUser ? 'draggable="true"' : '';
                 const clickableTeamClass = currentUser ? 'clickable-team' : '';
