@@ -136,16 +136,18 @@
             color: var(--text-color);
         }
         .export-header h1 {
-            color: var(--secondary-color);
-            margin-bottom: 5px;
-            font-size: 2.2em;
-        }
+    color: var(--secondary-color);
+    margin-bottom: 2px; /* ลดระยะห่างลงอีก */
+    font-size: 2.2em;
+    line-height: 1.1; /* เพิ่มการควบคุมความสูงบรรทัด */
+}
         .export-header h2 {
-            color: var(--text-muted);
-            font-size: 1.3em;
-            margin: 0;
-            font-weight: 400;
-        }
+    color: var(--text-muted);
+    font-size: 1.3em;
+    margin: 0;
+    font-weight: 400;
+    line-height: 1.1; /* เพิ่มการควบคุมความสูงบรรทัด */
+}
         .export-mode-grid {
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
