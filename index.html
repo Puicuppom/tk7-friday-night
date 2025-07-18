@@ -74,17 +74,15 @@
         .leaderboard-table th, .leaderboard-table td { padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
         .leaderboard-table th { background-color: var(--surface-color); color: var(--secondary-color); font-weight: 600; }
         
-        /* <<<< CORRECTION STARTS HERE >>>> */
         .leaderboard-table th:first-child,
         .leaderboard-table td:first-child {
-            width: 50px; /* Set a fixed width for the '#' column */
+            width: 50px; 
         }
         .leaderboard-table .team-name {
-            width: 220px; /* Increased width for the 'Team' column */
+            width: 190px; /* <<<< CORRECTION: Reduced width for better mobile view */
             text-align: center;
             font-weight: 600;
         }
-        /* <<<< CORRECTION ENDS HERE >>>> */
 
         .date-selector-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .date-selector-container select { flex-grow: 1; }
@@ -648,7 +646,6 @@
             }); 
             const medals = ['🥇', '🥈', '🥉']; 
             
-            /* <<<< CORRECTION STARTS HERE >>>> */
             const html = `<table class="leaderboard-table">
                 <thead>
                     <tr>
@@ -684,7 +681,6 @@
                     </tr>`).join('')}
                 </tbody>
             </table>`;
-            /* <<<< CORRECTION ENDS HERE >>>> */
 
             renderWithMorph(container, html); 
         }
