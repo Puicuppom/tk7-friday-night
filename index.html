@@ -69,11 +69,23 @@
             border-collapse: collapse;
             text-align: center;
             min-width: 600px;
-            table-layout: fixed; /* <<<< CORRECTION: Force columns to have equal width */
+            table-layout: fixed;
         }
         .leaderboard-table th, .leaderboard-table td { padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
         .leaderboard-table th { background-color: var(--surface-color); color: var(--secondary-color); font-weight: 600; }
-        .leaderboard-table td.team-name { text-align: center; font-weight: 600; width: 160px; }
+        
+        /* <<<< CORRECTION STARTS HERE >>>> */
+        .leaderboard-table th:first-child,
+        .leaderboard-table td:first-child {
+            width: 50px; /* Set a fixed width for the '#' column */
+        }
+        .leaderboard-table .team-name {
+            width: 220px; /* Increased width for the 'Team' column */
+            text-align: center;
+            font-weight: 600;
+        }
+        /* <<<< CORRECTION ENDS HERE >>>> */
+
         .date-selector-container { display: flex; gap: 10px; margin-bottom: 20px; }
         .date-selector-container select { flex-grow: 1; }
         .delete-day-btn { width: 44px; height: 44px; background-color: var(--team-red); color: white; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: filter 0.2s ease-in-out; flex-shrink: 0; }
@@ -620,7 +632,63 @@
             renderWithMorph(container, html);
         }
 
-        function renderLeaderboardPage(date) { const container = document.getElementById('leaderboard-container'); const dayData = appData[date]; if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { renderWithMorph(container, createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', '📊')); return; } const stats = calculateLeaderboard(date); const sortedTeams = Object.values(stats).sort((a, b) => { if (b.pts !== a.pts) return b.pts - a.pts; if (b.gd !== a.gd) return b.gd - a.gd; if (b.gf !== a.gf) return b.gf - a.gf; return a.name.localeCompare(b.name); }); const medals = ['🥇', '🥈', '🥉']; const html = `<table class="leaderboard-table"><thead><tr><th>#</th><th class="team-name">ทีม</th><th>แข่ง</th><th>ชนะ</th><th>เสมอ</th><th>แพ้</th><th>ได้</th><th>เสีย</th><th>+/-</th><th>คะแนน</th></tr></thead><tbody>${sortedTeams.map((team, index) => `<tr><td>${medals[index] || index + 1}</td><td class="team-name"><div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">${team.name}</div></td><td>${team.p}</td><td>${team.w}</td><td>${team.d}</td><td>${team.l}</td><td>${team.gf}</td><td>${team.ga}</td><td>${team.gd}</td><td><strong>${team.pts}</strong></td></tr>`).join('')}</tbody></table>`; renderWithMorph(container, html); }
+        function renderLeaderboardPage(date) { 
+            const container = document.getElementById('leaderboard-container'); 
+            const dayData = appData[date]; 
+            if (!dayData || !dayData.settings || !dayData.settings.activeTeams) { 
+                renderWithMorph(container, createNoDataMessage('ยังไม่มีข้อมูลตารางคะแนน', '📊')); 
+                return; 
+            } 
+            const stats = calculateLeaderboard(date); 
+            const sortedTeams = Object.values(stats).sort((a, b) => { 
+                if (b.pts !== a.pts) return b.pts - a.pts; 
+                if (b.gd !== a.gd) return b.gd - a.gd; 
+                if (b.gf !== a.gf) return b.gf - a.gf; 
+                return a.name.localeCompare(b.name); 
+            }); 
+            const medals = ['🥇', '🥈', '🥉']; 
+            
+            /* <<<< CORRECTION STARTS HERE >>>> */
+            const html = `<table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="team-name">ทีม</th>
+                        <th>แข่ง</th>
+                        <th>ชนะ</th>
+                        <th>เสมอ</th>
+                        <th>แพ้</th>
+                        <th>ได้</th>
+                        <th>เสีย</th>
+                        <th>+/-</th>
+                        <th>คะแนน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedTeams.map((team, index) => `
+                    <tr>
+                        <td>${medals[index] || index + 1}</td>
+                        <td class="team-name">
+                            <div class="team-emblem ${team.slug}" style="display:inline-flex; padding: 4px 8px; font-size: 14px;">
+                                ${team.name}
+                            </div>
+                        </td>
+                        <td>${team.p}</td>
+                        <td>${team.w}</td>
+                        <td>${team.d}</td>
+                        <td>${team.l}</td>
+                        <td>${team.gf}</td>
+                        <td>${team.ga}</td>
+                        <td>${team.gd}</td>
+                        <td><strong>${team.pts}</strong></td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>`;
+            /* <<<< CORRECTION ENDS HERE >>>> */
+
+            renderWithMorph(container, html); 
+        }
+
         function updateScore(index, team, value) { if (!currentUser) return; const date = currentDateKey; let dayData = appData[date]; if (!dayData) return; const newSchedule = [...dayData.schedule]; const match = newSchedule[index]; if (team === 'home') match.homeScore = value; else match.awayScore = value; debouncedUpdateInDB(newSchedule); }
         function updateScoreFromButton(button) { const { index, team, op } = button.dataset; const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`); let currentValue = parseInt(input.value || '0'); currentValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1); updateScore(index, team, currentValue); }
         function updateScoreFromInput(input) { const { index, team } = input.dataset; let value = input.value === '' ? null : Math.max(0, parseInt(input.value)); updateScore(index, team, value); }
