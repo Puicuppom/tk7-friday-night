@@ -578,13 +578,14 @@
             const { schedule, settings } = dayData;
             const startTime = new Date(`${date}T${settings.startTime}`);
             const isReadOnly = !currentUser;
+            const disabledAttr = isReadOnly ? 'disabled' : '';
+            
             const html = schedule.map((match, index) => {
                 const matchTime = new Date(startTime.getTime() + index * settings.timePerMatch * 60000);
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
                 const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' };
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' };
                 const readonlyAttr = isReadOnly ? 'readonly' : '';
-                const disabledAttr = isReadOnly ? 'disabled' : '';
                 
                 const homeScoreText = match.homeScore !== null ? match.homeScore : ' ';
                 const awayScoreText = match.awayScore !== null ? match.awayScore : ' ';
@@ -685,10 +686,55 @@
             renderWithMorph(container, html); 
         }
 
-        function updateScore(index, team, value) { if (!currentUser) return; const date = currentDateKey; let dayData = appData[date]; if (!dayData) return; const newSchedule = [...dayData.schedule]; const match = newSchedule[index]; if (team === 'home') match.homeScore = value; else match.awayScore = value; debouncedUpdateInDB(newSchedule); }
-        function updateScoreFromButton(button) { const { index, team, op } = button.dataset; const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`); let currentValue = parseInt(input.value || '0'); currentValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1); updateScore(index, team, currentValue); }
-        function updateScoreFromInput(input) { const { index, team } = input.dataset; let value = input.value === '' ? null : Math.max(0, parseInt(input.value)); updateScore(index, team, value); }
-        function resetScore(button) { const { index } = button.dataset; updateScore(index, 'home', null); updateScore(index, 'away', null); }
+        // === START: IMPROVED CODE BLOCK FOR RESPONSIVE SCORE UPDATES ===
+        function updateScore(index, team, value) {
+            if (!currentUser) return;
+            const date = currentDateKey;
+            let dayData = appData[date];
+            if (!dayData) return;
+
+            // 1. Update local state (appData) immediately
+            const newSchedule = [...dayData.schedule];
+            const match = newSchedule[index];
+            if (team === 'home') match.homeScore = value;
+            else match.awayScore = value;
+            appData[date].schedule = newSchedule;
+
+            // 2. Update UI directly for instant feedback
+            const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
+            if (input) {
+                input.value = (value === null ? '' : value);
+            }
+            
+            // 3. Also update the leaderboard in real-time locally
+            renderLeaderboardPage(date);
+
+            // 4. Debounce the database update to run in the background
+            debouncedUpdateInDB(newSchedule);
+        }
+
+        function updateScoreFromButton(button) {
+            const { index, team, op } = button.dataset;
+            const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
+            let currentValue = parseInt(input.value || '0');
+            let newValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1);
+            updateScore(parseInt(index), team, newValue);
+        }
+
+        function updateScoreFromInput(input) {
+            const { index, team } = input.dataset;
+            let value = input.value === '' ? null : Math.max(0, parseInt(input.value));
+            updateScore(parseInt(index), team, value);
+        }
+
+        function resetScore(button) {
+            const { index } = button.dataset;
+            const intIndex = parseInt(index);
+            updateScore(intIndex, 'home', null);
+            updateScore(intIndex, 'away', null);
+        }
+        // === END: IMPROVED CODE BLOCK ===
+
         function calculateLeaderboard(date) { const dayData = appData[date]; if (!dayData || !dayData.schedule) return {}; const stats = {}; dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); if(teamInfo) { stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; }}); dayData.schedule.forEach(match => { const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return; stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore; if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; } }); Object.values(stats).forEach(team => { team.gd = team.gf - team.ga; }); return stats; }
 
         init();
