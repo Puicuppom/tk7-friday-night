@@ -230,7 +230,7 @@
             <button id="logout-btn" class="btn-danger">ออกจากระบบ</button>
         </div>
 
-        <main id="content" onclick="handleMainClick(event)">
+        <main id="content">
             <div id="page-setup" class="page">
                 <div id="setup-content-wrapper">
                     <div class="page-header"><h1>⚽ ตั้งค่าการแข่งขัน</h1></div>
@@ -352,9 +352,6 @@
             ]
         };
         
-        function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
-        const debouncedUpdateInDB = debounce(async (newSchedule) => { if (!currentUser) return; const { error } = await db.from('match_days').update({ schedule: newSchedule }).eq('match_date', currentDateKey); if (error) { alert('เกิดข้อผิดพลาดในการอัปเดตตาราง: ' + error.message); } }, 500);
-
         function saveScrollPosition() { lastScrollPosition = contentContainer.scrollTop; }
         function restoreScrollPosition() { if (shouldRestoreScroll) { requestAnimationFrame(() => { contentContainer.scrollTop = lastScrollPosition; }); } shouldRestoreScroll = false; }
 
@@ -370,9 +367,12 @@
             document.querySelector('#login-modal .close-modal-btn').addEventListener('click', () => loginModal.style.display = 'none');
             document.querySelector('#team-select-modal .close-modal-btn').addEventListener('click', () => teamSelectModal.style.display = 'none');
             window.addEventListener('click', (event) => { if (event.target == loginModal || event.target == teamSelectModal) { event.target.style.display = "none"; } });
+            
+            // Re-route main click events to a dedicated handler for better organization
+            contentContainer.addEventListener('click', handleMainClick);
+            
             setupDragAndDropListeners(document.getElementById('schedule-container'));
             
-            // Wait for Supabase to determine the initial session
             const { data: { session } } = await db.auth.getSession();
             currentUser = session ? session.user : null;
             toggleAdminView(!!currentUser);
@@ -380,10 +380,8 @@
                 userInfo.textContent = `👤 ${currentUser.email}`;
             }
 
-            // Load data based on the determined auth state
             await loadInitialData();
 
-            // Now, listen for subsequent auth changes (e.g., user logs in/out)
             db.auth.onAuthStateChange(async (event, session) => {
                 const wasLoggedIn = !!currentUser;
                 currentUser = session ? session.user : null;
@@ -395,11 +393,10 @@
                         userInfo.textContent = `👤 ${currentUser.email}`;
                         loginModal.style.display = 'none';
                     }
-                    await loadInitialData(); // Reload data on auth state change
+                    await loadInitialData();
                 }
             });
 
-            // Listen for database changes
             listenToRealtimeChanges();
         }
         
@@ -471,7 +468,39 @@
             renderWithMorph(container, html);
         }
         
-        function handleMainClick(event) { const target = event.target; const deleteBtn = target.closest('.delete-match-btn'); if (deleteBtn) { handleDeleteMatch(deleteBtn.dataset.index); return; } const teamEl = target.closest('.clickable-team'); if (teamEl) { openTeamSelectModal(teamEl.dataset.index, teamEl.dataset.side); return; } const addBtn = target.closest('#add-match-btn'); if (addBtn) { handleAddMatch(); return; } const scoreBtn = target.closest('.score-btn'); if (scoreBtn) { updateScoreFromButton(scoreBtn); return; } const scoreInput = target.closest('.score-input'); if (scoreInput) { scoreInput.onchange = () => updateScoreFromInput(scoreInput); return; } const resetBtn = target.closest('.reset-score-btn'); if (resetBtn) { resetScore(resetBtn); return; } }
+        async function handleMainClick(event) { 
+            const target = event.target; 
+            const deleteBtn = target.closest('.delete-match-btn'); 
+            if (deleteBtn) { 
+                handleDeleteMatch(deleteBtn.dataset.index); 
+                return; 
+            } 
+            const teamEl = target.closest('.clickable-team'); 
+            if (teamEl) { 
+                openTeamSelectModal(teamEl.dataset.index, teamEl.dataset.side); 
+                return; 
+            } 
+            const addBtn = target.closest('#add-match-btn'); 
+            if (addBtn) { 
+                handleAddMatch(); 
+                return; 
+            } 
+            const scoreBtn = target.closest('.score-btn'); 
+            if (scoreBtn) { 
+                await updateScoreFromButton(scoreBtn); 
+                return; 
+            } 
+            const scoreInput = target.closest('.score-input'); 
+            if (scoreInput) { 
+                scoreInput.onchange = () => updateScoreFromInput(scoreInput); 
+                return; 
+            } 
+            const resetBtn = target.closest('.reset-score-btn'); 
+            if (resetBtn) { 
+                await resetScore(resetBtn); 
+                return; 
+            } 
+        }
         function handleDragStart(event) { const draggable = event.target.closest('.match-card.draggable'); if (!draggable) return; draggedItem = draggable; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', draggable.dataset.index); setTimeout(() => { draggedItem.classList.add('dragging'); }, 0); }
         function handleDragEnd(event) { if (!draggedItem) return; draggedItem.classList.remove('dragging'); draggedItem = null; const placeholder = document.querySelector('.drag-over-placeholder'); if (placeholder) { placeholder.remove(); } }
         function handleDragOver(event) { event.preventDefault(); const container = event.currentTarget; const afterElement = getDragAfterElement(container, event.clientY); let placeholder = container.querySelector('.drag-over-placeholder'); if (!placeholder) { placeholder = document.createElement('div'); placeholder.classList.add('drag-over-placeholder'); } container.insertBefore(placeholder, afterElement); }
@@ -502,7 +531,7 @@
             }
         }
         
-        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { shouldRestoreScroll = false; loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateAdvancedOptions)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); document.getElementById('content').addEventListener('click', handleMainClick); isInitialSetupDone = true; } updateAdvancedOptions(); }
+        function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { shouldRestoreScroll = false; loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateAdvancedOptions)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); isInitialSetupDone = true; } updateAdvancedOptions(); }
         function updateAdvancedOptions() { updateOpenerSelects(); updateTemplateSelector(); }
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
         function updateOpenerSelects() { const openerHomeSelect = document.getElementById('opener-home'); const openerAwaySelect = document.getElementById('opener-away'); const activeTeamSlugs = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug); const currentHome = openerHomeSelect.value; const currentAway = openerAwaySelect.value; openerHomeSelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; openerAwaySelect.innerHTML = '<option value="">-- ไม่เลือก --</option>'; activeTeamSlugs.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const optionHtml = `<option value="${team.slug}">${team.name}</option>`; openerHomeSelect.innerHTML += optionHtml; openerAwaySelect.innerHTML += optionHtml; } }); openerHomeSelect.value = activeTeamSlugs.includes(currentHome) ? currentHome : ''; openerAwaySelect.value = activeTeamSlugs.includes(currentAway) ? currentAway : ''; }
@@ -582,10 +611,7 @@
             });
         }
 
-        // ---------- START: FINAL IMPROVED CODE ----------
         function listenToRealtimeChanges() {
-            // Create a channel, configuring it to NOT receive broadcasts from self.
-            // This prevents the "echo" that causes the UI flicker.
             db.channel('match_days_changes', {
                 config: {
                     broadcast: {
@@ -596,20 +622,16 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => {
                 console.log('Realtime change received from ANOTHER client!', payload);
                 const changedDate = payload.new?.match_date || payload.old?.match_date;
-                // If the change is for the currently viewed date, reload the data.
                 if (changedDate === currentDateKey) {
                     saveScrollPosition();
                     shouldRestoreScroll = true;
-                    // Re-fetch data for the current date as it has been updated by someone else.
                     await loadDataForDate(currentDateKey);
                 } else {
-                    // If the change is for another date, just reload the list of available dates.
                     await loadInitialData();
                 }
             })
             .subscribe();
         }
-        // ---------- END: FINAL IMPROVED CODE ----------
 
         function setupNavigation() { navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); }); }
         
@@ -770,7 +792,8 @@
             renderWithMorph(container, html); 
         }
 
-        function updateScore(index, team, value) {
+        // ---------- START: FINAL CODE (IMMEDIATE ASYNC UPDATE) ----------
+        async function updateScore(index, team, value) {
             if (!currentUser) return;
             const date = currentDateKey;
             let dayData = appData[date];
@@ -778,38 +801,57 @@
 
             const newSchedule = [...dayData.schedule];
             const match = newSchedule[index];
-            if (team === 'home') match.homeScore = value;
-            else match.awayScore = value;
+
+            if (team === 'home') {
+                match.homeScore = value;
+            } else {
+                match.awayScore = value;
+            }
+
             appData[date].schedule = newSchedule;
 
             const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
             if (input) {
                 input.value = (value === null ? '' : value);
             }
-            
-            debouncedUpdateInDB(newSchedule);
+
+            try {
+                const { error } = await db
+                    .from('match_days')
+                    .update({ schedule: newSchedule })
+                    .eq('match_date', currentDateKey);
+
+                if (error) {
+                    throw error;
+                }
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการบันทึกคะแนน: ' + error.message);
+            }
         }
 
-        function updateScoreFromButton(button) {
+        async function updateScoreFromButton(button) {
             const { index, team, op } = button.dataset;
             const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
             let currentValue = parseInt(input.value || '0');
             let newValue = (op === '1') ? currentValue + 1 : Math.max(0, currentValue - 1);
-            updateScore(parseInt(index), team, newValue);
+            await updateScore(parseInt(index), team, newValue);
         }
 
-        function updateScoreFromInput(input) {
+        async function updateScoreFromInput(input) {
             const { index, team } = input.dataset;
             let value = input.value === '' ? null : Math.max(0, parseInt(input.value));
-            updateScore(parseInt(index), team, value);
+            await updateScore(parseInt(index), team, value);
         }
 
-        function resetScore(button) {
+        async function resetScore(button) {
             const { index } = button.dataset;
             const intIndex = parseInt(index);
-            updateScore(intIndex, 'home', null);
-            updateScore(intIndex, 'away', null);
+            await Promise.all([
+                updateScore(intIndex, 'home', null),
+                updateScore(intIndex, 'away', null)
+            ]);
         }
+        // ---------- END: FINAL CODE ----------
 
         function calculateLeaderboard(date) { const dayData = appData[date]; if (!dayData || !dayData.schedule) return {}; const stats = {}; dayData.settings.activeTeams.forEach(slug => { const teamInfo = TEAMS.find(t => t.slug === slug); if(teamInfo) { stats[slug] = { name: teamInfo.name, slug: teamInfo.slug, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; }}); dayData.schedule.forEach(match => { const { home, away, homeScore, awayScore } = match; if (homeScore === null || awayScore === null || !stats[home] || !stats[away]) return; stats[home].p++; stats[away].p++; stats[home].gf += homeScore; stats[home].ga += awayScore; stats[away].gf += awayScore; stats[away].ga += homeScore; if (homeScore > awayScore) { stats[home].w++; stats[away].l++; stats[home].pts += 3; } else if (awayScore > homeScore) { stats[away].w++; stats[home].l++; stats[away].pts += 3; } else { stats[home].d++; stats[away].d++; stats[home].pts += 1; stats[away].pts += 1; } }); Object.values(stats).forEach(team => { team.gd = team.gf - team.ga; }); return stats; }
 
