@@ -483,7 +483,28 @@
         async function handleDeleteMatch(index) { const idx = parseInt(index, 10); if (!currentUser) return; const dayData = appData[currentDateKey]; if (!dayData) return; if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "แมตช์ที่ ${idx + 1}" ?`)) { let newSchedule = [...dayData.schedule]; newSchedule.splice(idx, 1); await updateScheduleInDB(newSchedule); } }
         function openTeamSelectModal(index, side) { if (!currentUser) return; currentEditingContext = { index: parseInt(index), side }; const dayData = appData[currentDateKey]; const activeTeams = dayData.settings.activeTeams; const modalList = document.getElementById('team-select-modal-list'); document.getElementById('team-select-modal-title').textContent = `เลือกทีม${side === 'home' ? 'เหย้า' : 'เยือน'}สำหรับแมตช์ที่ ${currentEditingContext.index + 1}`; modalList.innerHTML = ''; activeTeams.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const teamEl = document.createElement('div'); teamEl.className = `team-emblem ${team.slug} clickable`; teamEl.textContent = team.name; teamEl.dataset.slug = team.slug; teamEl.onclick = () => handleTeamSelection(team.slug); modalList.appendChild(teamEl); } }); teamSelectModal.style.display = 'block'; }
         async function handleTeamSelection(newTeamSlug) { const { index, side } = currentEditingContext; if (index === null || !side) return; const dayData = appData[currentDateKey]; let newSchedule = [...dayData.schedule]; const match = newSchedule[index]; const otherSide = side === 'home' ? 'away' : 'home'; if (match[otherSide] === newTeamSlug) { alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้'); return; } match[side] = newTeamSlug; teamSelectModal.style.display = 'none'; await updateScheduleInDB(newSchedule); }
-        function setActivePage(pageId) { if (!currentUser && pageId === 'page-setup') { alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้'); loginModal.style.display = 'block'; return; } activePage = pageId; shouldRestoreScroll = false; pages.forEach(page => page.classList.remove('active')); document.getElementById(pageId).classList.add('active'); navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); content.scrollTop = 0; }
+        
+        // ---------- START: IMPROVED CODE 2 ----------
+        function setActivePage(pageId) { 
+            if (!currentUser && pageId === 'page-setup') { 
+                alert('คุณต้องเข้าสู่ระบบผู้ดูแลเพื่อเข้าถึงหน้านี้'); 
+                loginModal.style.display = 'block'; 
+                return; 
+            } 
+            activePage = pageId; 
+            shouldRestoreScroll = false; 
+            pages.forEach(page => page.classList.remove('active')); 
+            document.getElementById(pageId).classList.add('active'); 
+            navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); 
+            content.scrollTop = 0; 
+            
+            // If the page being opened is the leaderboard, render it to ensure data is fresh.
+            if (pageId === 'page-leaderboard') {
+                renderLeaderboardPage(currentDateKey);
+            }
+        }
+        // ---------- END: IMPROVED CODE 2 ----------
+        
         function setupPageSetup() { const contentWrapper = document.getElementById('setup-content-wrapper'); const loginPrompt = document.getElementById('setup-login-prompt'); if (!currentUser) { contentWrapper.style.display = 'none'; loginPrompt.style.display = 'block'; loginPrompt.innerHTML = createNoDataMessage('กรุณาเข้าสู่ระบบผู้ดูแลเพื่อตั้งค่าการแข่งขัน', '🔐'); return; } contentWrapper.style.display = 'block'; loginPrompt.style.display = 'none'; if (!isInitialSetupDone) { const container = document.getElementById('team-toggle-container'); container.innerHTML = ''; TEAMS.forEach(team => { const toggleHtml = `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`; container.innerHTML += toggleHtml; }); document.getElementById('match-date').addEventListener('change', (e) => { shouldRestoreScroll = false; loadDataForDate(e.target.value); }); document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule); document.querySelectorAll('.team-switch').forEach(sw => sw.addEventListener('change', updateAdvancedOptions)); document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper)); document.getElementById('content').addEventListener('click', handleMainClick); isInitialSetupDone = true; } updateAdvancedOptions(); }
         function updateAdvancedOptions() { updateOpenerSelects(); updateTemplateSelector(); }
         function handleNumberStepper(event) { const op = parseInt(event.currentTarget.dataset.op); const targetId = event.currentTarget.dataset.target; const input = document.getElementById(targetId); if (input) { const step = parseFloat(input.step) || 1; const min = parseFloat(input.min); let currentValue = parseFloat(input.value) || 0; let newValue = currentValue + (op * step); if (!isNaN(min) && newValue < min) newValue = min; input.value = parseFloat(newValue.toPrecision(12)); } }
@@ -737,6 +758,7 @@
             renderWithMorph(container, html); 
         }
 
+        // ---------- START: IMPROVED CODE 1 ----------
         function updateScore(index, team, value) {
             if (!currentUser) return;
             const date = currentDateKey;
@@ -749,14 +771,16 @@
             else match.awayScore = value;
             appData[date].schedule = newSchedule;
 
+            // Update the input field immediately for instant feedback
             const input = document.querySelector(`.score-input[data-index="${index}"][data-team="${team}"]`);
             if (input) {
                 input.value = (value === null ? '' : value);
             }
             
-            renderLeaderboardPage(date);
+            // The debounced database update works as before
             debouncedUpdateInDB(newSchedule);
         }
+        // ---------- END: IMPROVED CODE 1 ----------
 
         function updateScoreFromButton(button) {
             const { index, team, op } = button.dataset;
