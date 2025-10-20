@@ -164,6 +164,9 @@
                                 <input type="number" id="time-per-match" value="8" step="1" min="1">
                                 <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
                             </div>
+                            <div style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                                (ระบบจะบวกเวลาเดินเข้า/ออกสนามให้อัตโนมัติ 1 นาที)
+                            </div>
                         </div>
                         <div class="form-group"><label for="start-time">🕗 เวลาเริ่มแข่งขัน</label><input type="time" id="start-time" value="20:00"></div>
                     </div>
@@ -431,7 +434,10 @@
                 container.innerHTML = TEAMS.map(team => `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`).join('');
                 document.getElementById('match-date').addEventListener('change', (e) => { shouldRestoreScroll = false; loadDataForDate(e.target.value); });
                 document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
-                document.querySelectorAll('.team-switch').forEach(el => el.addEventListener('change', () => renderSchedulePreview(false)));
+                document.querySelectorAll('.team-switch').forEach(el => el.addEventListener('change', () => {
+                    updateAdvancedOptions(); 
+                    renderSchedulePreview(false);
+                }));
                 document.querySelectorAll('#template-selector, #opener-home, #opener-away').forEach(el => el.addEventListener('change', () => renderSchedulePreview(false)));
                 document.querySelectorAll('#page-setup .num-stepper-btn').forEach(btn => btn.addEventListener('click', handleNumberStepper));
                 isInitialSetupDone = true;
