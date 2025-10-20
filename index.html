@@ -431,7 +431,10 @@
             loginPrompt.style.display = 'none';
             if (!isInitialSetupDone) {
                 const container = document.getElementById('team-toggle-container');
-                container.innerHTML = TEAMS.map(team => `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" checked><span class="slider"></span></label></div>`).join('');
+                container.innerHTML = TEAMS.map((team, index) => {
+                    const isChecked = index < 5 ? 'checked' : '';
+                    return `<div class="team-toggle"><div class="team-emblem ${team.slug}">${team.name}</div><label class="switch"><input type="checkbox" class="team-switch" data-team-slug="${team.slug}" ${isChecked}><span class="slider"></span></label></div>`;
+                }).join('');
                 document.getElementById('match-date').addEventListener('change', (e) => { shouldRestoreScroll = false; loadDataForDate(e.target.value); });
                 document.getElementById('generate-schedule-btn').addEventListener('click', generateAndSaveSchedule);
                 document.querySelectorAll('.team-switch').forEach(el => el.addEventListener('change', () => {
@@ -714,7 +717,9 @@
             if (!currentUser) return;
             document.getElementById('time-per-match').value = 8;
             document.getElementById('start-time').value = '20:00';
-            document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
+            document.querySelectorAll('.team-switch').forEach((sw, index) => {
+                sw.checked = index < 5;
+            });
             updateAdvancedOptions();
             document.getElementById('template-selector').value = '0';
             document.getElementById('opener-home').value = '';
