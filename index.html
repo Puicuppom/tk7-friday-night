@@ -158,10 +158,10 @@
                     <div class="card">
                         <div class="form-group"><label for="match-date">📆 วันที่แข่งขัน</label><input type="date" id="match-date"></div>
                         <div class="form-group">
-                            <label for="time-per-match">⏱️ เวลาต่อแมตช์ (นาที)</label>
+                            <label for="time-per-match">⏱️ เวลาแข่งขัน (นาที)</label>
                             <div class="custom-number-input">
                                 <button class="num-stepper-btn" data-op="-1" data-target="time-per-match">-</button>
-                                <input type="number" id="time-per-match" value="9" step="1" min="1">
+                                <input type="number" id="time-per-match" value="8" step="1" min="1">
                                 <button class="num-stepper-btn" data-op="1" data-target="time-per-match">+</button>
                             </div>
                         </div>
@@ -554,7 +554,7 @@
             }
             const activeTeams = Array.from(document.querySelectorAll('.team-switch:checked')).map(sw => sw.dataset.teamSlug);
             const settings = {
-                timePerMatch: parseInt(document.getElementById('time-per-match').value),
+                timePerMatch: parseInt(document.getElementById('time-per-match').value) + 1,
                 startTime: document.getElementById('start-time').value,
                 activeTeams: activeTeams, 
                 opener: { home: document.getElementById('opener-home').value, away: document.getElementById('opener-away').value },
@@ -679,7 +679,7 @@
         function loadSettingsFromData(settings) {
             if (!settings || !currentUser) return;
         
-            document.getElementById('time-per-match').value = settings.timePerMatch || 9;
+            document.getElementById('time-per-match').value = settings.timePerMatch ? settings.timePerMatch - 1 : 8;
             document.getElementById('start-time').value = settings.startTime || '20:00';
         
             document.querySelectorAll('.team-switch').forEach(sw => {
@@ -706,7 +706,7 @@
 
         function resetSettingsForm() {
             if (!currentUser) return;
-            document.getElementById('time-per-match').value = 9;
+            document.getElementById('time-per-match').value = 8;
             document.getElementById('start-time').value = '20:00';
             document.querySelectorAll('.team-switch').forEach(sw => sw.checked = true);
             updateAdvancedOptions();
@@ -779,4 +779,3 @@
     </script>
 </body>
 </html>
-
