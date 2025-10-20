@@ -82,9 +82,10 @@
         .close-modal-btn { color: var(--text-muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
         .close-modal-btn:hover, .close-modal-btn:focus { color: var(--text-color); }
         #modal-match-info { margin-bottom: 15px; color: var(--text-muted); text-align: center; }
-        .match-actions { margin-left: auto; }
-        .delete-match-btn { background-color: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); transition: color 0.2s ease-in-out; display: flex; align-items: center; }
-        @media (hover: hover) { .delete-match-btn:hover { color: var(--team-red); } }
+        .match-actions { display: flex; align-items: center; margin-left: auto; }
+        .action-btn { background-color: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-muted); transition: color 0.2s ease-in-out; display: flex; align-items: center; }
+        .action-btn svg { width: 18px; height: 18px; }
+        @media (hover: hover) { .action-btn.delete-match-btn:hover { color: var(--team-red); } .action-btn.move-top-btn:hover { color: var(--secondary-color); } }
         .custom-number-input { display: flex; align-items: center; gap: 5px; }
         .custom-number-input input { text-align: center; flex-grow: 1; }
         .num-stepper-btn { width: 44px; height: 44px; background-color: #333; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 24px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
@@ -132,7 +133,7 @@
         .export-header h2 { display: block;  color: var(--text-muted); font-size: 1.3em; margin: 0; font-weight: 400; }
         .export-mode-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; grid-auto-flow: column; }
         .export-mode-grid .match-card { margin-bottom: 0 !important; }
-        .temp-export-container .delete-match-btn, .temp-export-container #add-match-btn, .temp-export-container .interactive-controls { display: none !important; }
+        .temp-export-container .delete-match-btn, .temp-export-container .interactive-controls { display: none !important; }
         .temp-export-container .score-line-export, .temp-export-container .match-body { display: flex !important; justify-content: space-between; align-items: center; padding: 8px 0; }
         .temp-export-container .score-block { display: flex; align-items: center; justify-content: center; gap: 10px; flex-shrink: 0; }
         .temp-export-container .score-value { font-size: 1.4em; font-weight: 700; }
@@ -236,6 +237,7 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
         
         const SVG_TRASH = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg>`;
+        const SVG_MOVE_TOP = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M7.646 2.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 3.707 2.354 9.354a.5.5 0 1 1-.708-.708z"/><path d="M7.646 6.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 7.707l-5.646 5.647a.5.5 0 0 1-.708-.708z"/></svg>`;
         const TEAMS = [ { name: 'ทีมเขียว', slug: 'green' }, { name: 'ทีมแดง', slug: 'red' }, { name: 'ทีมขาว', slug: 'white' }, { name: 'ทีมฟ้า', slug: 'blue' }, { name: 'ทีมดำ', slug: 'black' }, { name: 'ทีมเหลือง', slug: 'yellow' }, { name: 'ทีมชมพู', slug: 'pink' }, { name: 'ทีมส้ม', slug: 'orange' }, { name: 'ทีมน้ำเงิน', slug: 'navy' }, { name: 'ทีมม่วง', slug: 'purple' } ];
         let appData = {}, activePage = 'page-schedule', currentDateKey = new Date().toISOString().split('T')[0], currentEditingContext = { index: null, side: null }, currentUser = null, isInitialSetupDone = false, draggedItem = null;
         let lastScrollPosition = 0, shouldRestoreScroll = false;
@@ -343,11 +345,19 @@
                 const timeStr = matchTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit'});
                 const homeTeam = TEAMS.find(t => t.slug === match.home) || { name: 'N/A', slug: 'black' };
                 const awayTeam = TEAMS.find(t => t.slug === match.away) || { name: 'N/A', slug: 'black' };
-                const adminDeleteBtn = currentUser ? `<div class="match-actions"><button class="delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">${SVG_TRASH}</button></div>` : '';
+
+                let adminActions = '';
+                if(currentUser) {
+                    const moveTopBtn = index > 0 ? `<button class="action-btn move-top-btn" data-index="${index}" title="เลื่อนไปแข่งเป็นคู่แรก">${SVG_MOVE_TOP}</button>` : '';
+                    const deleteBtn = `<button class="action-btn delete-match-btn" data-index="${index}" title="ลบแมตช์นี้">${SVG_TRASH}</button>`;
+                    adminActions = `<div class="match-actions">${moveTopBtn}${deleteBtn}</div>`;
+                }
+                
                 const draggableClass = currentUser ? 'draggable' : '';
                 const draggableAttr = currentUser ? 'draggable="true"' : '';
                 const clickableTeamClass = currentUser ? 'clickable-team' : '';
-                return `<div class="card match-card ${draggableClass}" data-index="${index}" ${draggableAttr}><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${adminDeleteBtn}</div><div class="match-body"><div class="team-emblem ${homeTeam.slug} ${clickableTeamClass}" data-index="${index}" data-side="home">${homeTeam.name}</div><span class="vs">VS</span><div class="team-emblem ${awayTeam.slug} ${clickableTeamClass}" data-index="${index}" data-side="away">${awayTeam.name}</div></div></div>`;
+
+                return `<div class="card match-card ${draggableClass}" data-index="${index}" ${draggableAttr}><div class="match-header"><span>แมตช์ที่ ${index + 1}</span><span>⏱️ ${timeStr}</span>${adminActions}</div><div class="match-body"><div class="team-emblem ${homeTeam.slug} ${clickableTeamClass}" data-index="${index}" data-side="home">${homeTeam.name}</div><span class="vs">VS</span><div class="team-emblem ${awayTeam.slug} ${clickableTeamClass}" data-index="${index}" data-side="away">${awayTeam.name}</div></div></div>`;
             }).join('');
             if (currentUser && dayData.schedule) { html += `<button id="add-match-btn" class="btn btn-primary">➕ เพิ่มแมตช์ใหม่</button>`; }
             renderWithMorph(container, html);
@@ -356,6 +366,7 @@
         async function handleMainClick(event) { 
             const target = event.target; 
             const deleteBtn = target.closest('.delete-match-btn'); if (deleteBtn) { handleDeleteMatch(deleteBtn.dataset.index); return; } 
+            const moveTopBtn = target.closest('.move-top-btn'); if (moveTopBtn) { handleMoveMatchToTop(moveTopBtn.dataset.index); return; }
             const teamEl = target.closest('.clickable-team'); if (teamEl) { openTeamSelectModal(teamEl.dataset.index, teamEl.dataset.side); return; } 
             const addBtn = target.closest('#add-match-btn'); if (addBtn) { handleAddMatch(); return; } 
             const scoreBtn = target.closest('.score-btn'); if (scoreBtn) { await updateScoreFromButton(scoreBtn); return; } 
@@ -371,6 +382,22 @@
         
         async function handleAddMatch() { if (!currentUser) return; const dayData = appData[currentDateKey]; if (!dayData || !dayData.settings.activeTeams || dayData.settings.activeTeams.length < 2) { alert('ต้องมีทีมที่เข้าร่วมอย่างน้อย 2 ทีมเพื่อเพิ่มแมตช์'); return; } let newSchedule = dayData.schedule ? [...dayData.schedule] : []; newSchedule.push({ home: dayData.settings.activeTeams[0], away: dayData.settings.activeTeams[1], homeScore: null, awayScore: null }); await updateScheduleInDB(newSchedule); }
         async function handleDeleteMatch(index) { const idx = parseInt(index, 10); if (!currentUser) return; const dayData = appData[currentDateKey]; if (!dayData) return; if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "แมตช์ที่ ${idx + 1}" ?`)) { let newSchedule = [...dayData.schedule]; newSchedule.splice(idx, 1); await updateScheduleInDB(newSchedule); } }
+        
+        async function handleMoveMatchToTop(index) {
+            const idx = parseInt(index, 10);
+            if (!currentUser || isNaN(idx) || idx === 0) return;
+            const dayData = appData[currentDateKey];
+            if (!dayData || !dayData.schedule) return;
+
+            let currentSchedule = [...dayData.schedule];
+            const matchesToBecomeLast = currentSchedule.slice(0, idx);
+            const matchesToBecomeFirst = currentSchedule.slice(idx);
+            
+            const newSchedule = [...matchesToBecomeFirst, ...matchesToBecomeLast];
+            await updateScheduleInDB(newSchedule);
+            showToast(`✅ ย้ายแมตช์ไปเป็นคู่แรกแล้ว`);
+        }
+
         function openTeamSelectModal(index, side) { if (!currentUser) return; currentEditingContext = { index: parseInt(index), side }; const dayData = appData[currentDateKey]; const activeTeams = dayData.settings.activeTeams; const modalList = document.getElementById('team-select-modal-list'); document.getElementById('team-select-modal-title').textContent = `เลือกทีม${side === 'home' ? 'เหย้า' : 'เยือน'}สำหรับแมตช์ที่ ${currentEditingContext.index + 1}`; modalList.innerHTML = ''; activeTeams.forEach(slug => { const team = TEAMS.find(t => t.slug === slug); if (team) { const teamEl = document.createElement('div'); teamEl.className = `team-emblem ${team.slug} clickable`; teamEl.textContent = team.name; teamEl.dataset.slug = team.slug; teamEl.onclick = () => handleTeamSelection(team.slug); modalList.appendChild(teamEl); } }); teamSelectModal.style.display = 'block'; }
         async function handleTeamSelection(newTeamSlug) { const { index, side } = currentEditingContext; if (index === null || !side) return; const dayData = appData[currentDateKey]; let newSchedule = [...dayData.schedule]; const match = newSchedule[index]; const otherSide = side === 'home' ? 'away' : 'home'; if (match[otherSide] === newTeamSlug) { alert('ไม่สามารถเลือกทีมซ้ำกันในคู่เดียวกันได้'); return; } match[side] = newTeamSlug; teamSelectModal.style.display = 'none'; await updateScheduleInDB(newSchedule); }
         
@@ -472,20 +499,13 @@
 
         function showToast(message) { const toast = document.createElement('div'); toast.className = 'toast-notification'; toast.textContent = message; document.body.appendChild(toast); setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => { document.body.removeChild(toast); }, 2500); }, 2500); }
         
-        // --- PERFORMANCE FIX: Lazy load html2canvas ---
         let html2canvasLoaded = false;
         function loadHtml2Canvas() {
             return new Promise((resolve, reject) => {
-                if (html2canvasLoaded) {
-                    resolve();
-                    return;
-                }
+                if (html2canvasLoaded) { resolve(); return; }
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                script.onload = () => {
-                    html2canvasLoaded = true;
-                    resolve();
-                };
+                script.onload = () => { html2canvasLoaded = true; resolve(); };
                 script.onerror = reject;
                 document.head.appendChild(script);
             });
@@ -502,6 +522,7 @@
             } catch (error) {
                 console.error("Failed to load html2canvas script:", error);
                 alert("เกิดข้อผิดพลาดในการโหลดเครื่องมือ Export");
+            } finally {
                 buttonElement.innerHTML = originalText;
                 buttonElement.disabled = false;
             }
@@ -539,7 +560,6 @@
                 buttonElement.disabled = false;
             }
         }
-        // --- END OF PERFORMANCE FIX ---
 
         function listenToRealtimeChanges() { db.channel('match_days_changes', { config: { broadcast: { self: false, }, }, }).on('postgres_changes', { event: '*', schema: 'public', table: 'match_days' }, async (payload) => { console.log('Realtime change received!', payload); const changedDate = payload.new?.match_date || payload.old?.match_date; if (changedDate === currentDateKey) { saveScrollPosition(); shouldRestoreScroll = true; await loadDataForDate(currentDateKey); } else { await loadInitialData(); } }).subscribe(); }
         function setupNavigation() { navButtons.forEach(button => { button.addEventListener('click', () => setActivePage(button.dataset.page)); }); }
@@ -569,28 +589,38 @@
             restoreScrollPosition();
         }
         
-        // --- FIX IS HERE: Corrected the order of operations ---
         function loadSettingsFromData(settings) {
             if (!settings || !currentUser) return;
-            
+        
             document.getElementById('time-per-match').value = settings.timePerMatch || 9;
             document.getElementById('start-time').value = settings.startTime || '20:00';
-            
-            // 1. Set team checkboxes first, as dropdowns depend on this.
+        
+            // 1. Set team checkboxes first. THIS IS CRUCIAL.
             document.querySelectorAll('.team-switch').forEach(sw => {
                 sw.checked = settings.activeTeams ? settings.activeTeams.includes(sw.dataset.teamSlug) : true;
             });
-            
-            // 2. Rebuild the dropdown options based on the correct number of teams.
+        
+            // 2. Rebuild dropdowns based on the teams set above.
             updateAdvancedOptions();
-            
-            // 3. NOW, set the selected values for the newly built dropdowns.
-            document.getElementById('template-selector').value = settings.templateIndex || '0';
+        
+            // 3. NOW, set the dropdown values with proper validation.
+            const templateSelector = document.getElementById('template-selector');
+            const savedTemplateIndex = settings.templateIndex;
+        
+            // An option is valid if the index exists and is within the bounds of the available options.
+            const isSavedIndexValid = savedTemplateIndex !== undefined &&
+                                      savedTemplateIndex !== null &&
+                                      templateSelector.options.length > savedTemplateIndex &&
+                                      savedTemplateIndex >= 0;
+        
+            // Use the saved index if it's valid; otherwise, default to '0' (Table 1).
+            templateSelector.value = isSavedIndexValid ? savedTemplateIndex : '0';
+        
             document.getElementById('opener-home').value = settings.opener?.home || '';
             document.getElementById('opener-away').value = settings.opener?.away || '';
-            
+        
             // 4. Finally, render the preview based on all the correct settings.
-            renderSchedulePreview(); 
+            renderSchedulePreview();
         }
 
         function resetSettingsForm() {
